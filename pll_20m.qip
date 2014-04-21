@@ -1,0 +1,13 @@
+set_global_assignment -entity "pll_20m" -library "pll_20m" -name IP_TOOL_NAME "altera_pll"
+set_global_assignment -entity "pll_20m" -library "pll_20m" -name IP_TOOL_VERSION "13.1"
+set_global_assignment -entity "pll_20m" -library "pll_20m" -name IP_TOOL_ENV "mwpim"
+set_global_assignment -library "pll_20m" -name MISC_FILE [file join $::quartus(qip_path) "pll_20m.cmp"]
+set_global_assignment -name SYNTHESIS_ONLY_QIP ON
+
+set_global_assignment -library "pll_20m" -name VHDL_FILE [file join $::quartus(qip_path) "pll_20m.vhd"]
+set_global_assignment -library "pll_20m" -name VERILOG_FILE [file join $::quartus(qip_path) "pll_20m/pll_20m_0002.v"]
+set_global_assignment -library "pll_20m" -name QIP_FILE [file join $::quartus(qip_path) "pll_20m/pll_20m_0002.qip"]
+
+set_global_assignment -entity "pll_20m_0002" -library "pll_20m" -name IP_TOOL_NAME "altera_pll"
+set_global_assignment -entity "pll_20m_0002" -library "pll_20m" -name IP_TOOL_VERSION "13.1"
+set_global_assignment -entity "pll_20m_0002" -library "pll_20m" -name IP_TOOL_ENV "mwpim"

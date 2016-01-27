@@ -1,7 +1,0 @@
-
-
-/persist/vhdl/proj1/altclkctrl.vhd
-
-Jan 30 01PM:28:26>: Variation file name (altclkctrl) is identical with the name of one of its sub-components.
-
-MegaWizard Plug-In Manager will rename the variation to "altclkctra" to prevent compilation errors

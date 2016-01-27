@@ -1,4 +1,6 @@
 *.bak
+*.stp
+*greybox_tmp/*
 */db/*
 */incremental_db/*
 */output_files/*
@@ -18,3 +20,14 @@
 *.log
 *.sopcinfo
 pll_20m_sim/*
+adcpll/*
+adcpll_sim/*
+*.qdf
+*/PLLJ_PLLSPE_INFO.txt
+*/simulation/*
+*.BAK.*
+*.html
+main_hps/*
+*.txt
+*.out
+reduced_hps/*

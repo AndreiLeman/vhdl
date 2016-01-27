@@ -7,7 +7,7 @@ use ieee.std_logic_1164.all;
 entity deltaSigmaModulator2 is
 	generic(timeConstant_order: integer := 11);
 	port(clk: in std_logic;
-			datain: in unsigned(15 downto 0);
+			datain: in unsigned(31 downto 0);
 			dataout: out unsigned(3 downto 0));
 end entity;
 architecture a of deltaSigmaModulator2 is
@@ -30,7 +30,7 @@ begin
 	tmp <= signed("0"&curOutput&(27 downto 0=>'0'))-signed("0"&prevValue);
 	nextValue <= prevValue + ((timeConstant_order-2 downto 0=>tmp(32))&unsigned(tmp(32 downto timeConstant_order)));
 	
-	datain1 <= datain&(15 downto 0=>'0');
+	datain1 <= datain;
 	diff1 <= signed("0"&datain1)-signed("0"&prevValue);
 	diff2 <= diff1+signed("0"&prevValue(31 downto timeConstant_order));
 	tmp_out <= diff2(32 downto 32-timeConstant_order-4) when datain1<=prevValue else

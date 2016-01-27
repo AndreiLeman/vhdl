@@ -7,7 +7,7 @@ use ieee.std_logic_1164.all;
 entity deltaSigmaModulator is
 	generic(timeConstant_order: integer := 11);
 	port(clk: in std_logic;
-			datain: in unsigned(15 downto 0);
+			datain: in unsigned(31 downto 0);
 			dataout: out std_logic);
 end entity;
 architecture a of deltaSigmaModulator is
@@ -29,5 +29,5 @@ begin
 	
 	nextValue <= nextValue0 when curOutput='0' else nextValue1;
 	
-	curOutput <= '1' when (datain&(15 downto 0=>'0'))>prevValue else '0';
+	curOutput <= '1' when datain>prevValue else '0';
 end architecture;

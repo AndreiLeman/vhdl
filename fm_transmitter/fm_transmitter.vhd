@@ -25,11 +25,15 @@ use ieee.std_logic_1164.all;
 use work.AudioSubSystemStereo;
 use work.sineGenerator;
 use work.hexdisplay;
+use work.stereoEncoder;
+use work.volumeControl;
+use work.signedClipper;
+use work.simple_altera_pll;
 entity fm_transmitter is
 	port(CLOCK_50: in std_logic;
 			LEDR: out std_logic_vector(9 downto 0);
 			KEY: in std_logic_vector(3 downto 0);
-			SW: in unsigned(9 downto 0);
+			SW: in std_logic_vector(9 downto 0);
 			HEX0,HEX1,HEX2,HEX3,HEX4,HEX5: out std_logic_vector(6 downto 0);
 			AUD_XCK : out std_logic;
 			FPGA_I2C_SCLK : out std_logic;
@@ -39,7 +43,7 @@ entity fm_transmitter is
 			
 			VGA_R,VGA_G,VGA_B: out unsigned(7 downto 0);
 			VGA_CLK,VGA_SYNC_N,VGA_BLANK_N,VGA_VS,VGA_HS: out std_logic;
-			GPIO_0,GPIO_1: inout std_logic_vector(0 to 35));
+			GPIO_0,GPIO_1: inout std_logic_vector(35 downto 0));
 end entity;
 architecture a of fm_transmitter is
 	component pll_100 is
@@ -67,30 +71,43 @@ architecture a of fm_transmitter is
 	signal CLOCK_1,CLOCK_100,CLOCK_1K: std_logic;
 	signal CLOCK_300: std_logic;
 	signal fm_freq: unsigned(27 downto 0);
-	signal ainL,ainR,aoutL,aoutR: signed(15 downto 0);
+	signal ainL,ainR,ainL_scaled,ainR_scaled,aoutL,aoutR: signed(15 downto 0);
+	signal ainL1,ainR1: signed(19 downto 0);
 	signal ain: signed(16 downto 0);
-	signal ain_scaled: signed(27 downto 0);
+	signal ain_scaled: signed(23 downto 0);
 	signal fm1: signed(8 downto 0);
-	signal fm2: unsigned(8 downto 0);
+	signal fm2,fm2i: unsigned(8 downto 0);
 	signal base_freq: unsigned(27 downto 0);
 	
 	signal freq_int,freq_int_d0,freq_int_d1,freq_int_d2: unsigned(6 downto 0);
 	signal lastk3,lastk2,k3,k2: std_logic;
 	signal freq_f: unsigned(3 downto 0);
 	signal freq_int1,freq_f1,freq_sum: unsigned(31 downto 0);
+	signal enc_clk: std_logic;
+	signal encodedStereo: signed(23 downto 0);
+	
+	signal dac_out: unsigned(7 downto 0);
 begin
 	audio1: AudioSubSystemStereo port map(CLOCK_50=>CLOCK_50, AudMclk=>AUD_XCK,
 			I2C_Sclk=>FPGA_I2C_SCLK,I2C_Sdat=>FPGA_I2C_SDAT,Bclk=>AUD_BCLK,AdcLrc=>AUD_ADCLRCK,
 			DacLrc=>AUD_DACLRCK,AdcDat=>AUD_ADCDAT,DacDat=>AUD_DACDAT, Init=>not KEY(0),AudioInL=>ainL,
 			AudioInR=>ainR,AudioOutL=>aoutL,AudioOutR=>aoutR,SamClk=>aclk);
 	ain <= (ainL(15)&ainL)+(ainR(15)&ainR) when rising_edge(aclk);
-	ain_scaled <= ain*("0"&signed(SW(4 downto 0)*SW(4 downto 0))) when rising_edge(aclk);
+	ain_scaled <= ain*("0"&signed(unsigned(SW(2 downto 0))*unsigned(SW(2 downto 0)))) when rising_edge(aclk);
+	enc_clk <= CLOCK_50;
+	vcL: volumeControl port map(ainL,ainL1,SW(2 downto 0));
+	vcR: volumeControl port map(ainR,ainR1,SW(2 downto 0));
+	scL: signedClipper generic map(20,16) port map(ainL1,ainL_scaled);
+	scR: signedClipper generic map(20,16) port map(ainR1,ainR_scaled);
+	s_e: stereoEncoder port map(enc_clk,to_unsigned(102006,28),ainL_scaled&"00000000",ainR_scaled&"00000000",encodedStereo);
 	
 	pll: pll_100 port map(CLOCK_50,CLOCK_100);
-	pll2: pll_300 port map(CLOCK_50,CLOCK_300);
+	--pll2: pll_300 port map(CLOCK_50,CLOCK_300);
+	pll2: simple_altera_pll generic map("50 MHz","300 MHz") port map(CLOCK_50,CLOCK_300);
+	--CLOCK_300 <= CLOCK_100;
 	clk <= CLOCK_50;
 	
-	freq_int <= SW(9 downto 5)+to_unsigned(80,7);
+	freq_int <= unsigned(SW(9 downto 3));
 	freq_int1 <= freq_int*to_unsigned(14316558,25);
 	
 	lastk3 <= KEY(3) when rising_edge(CLOCK_50);
@@ -115,18 +132,29 @@ begin
 	HEX5 <= (others=>'1');
 	
 	base_freq <= freq_sum(31 downto 4);
-	fm_freq <= base_freq+((5 downto 0=>ain_scaled(27))&unsigned(ain_scaled(27 downto 6)))
-		when rising_edge(aclk);
+	--fm_freq <= base_freq+((5 downto 0=>ain_scaled(23))&unsigned(ain_scaled(23 downto 2)))
+	--	when rising_edge(enc_clk);
+	fm_freq <= base_freq+((5 downto 0=>encodedStereo(23))&unsigned(encodedStereo(23 downto 2)))
+		when rising_edge(enc_clk);
+	
 	sg: sineGenerator port map(CLOCK_300,fm_freq,fm1);
 	fm2 <= unsigned(fm1)+"100000000" when rising_edge(CLOCK_300);
+	fm2i <= unsigned(-fm1)+"100000000" when rising_edge(CLOCK_300);
 	--GPIO_1(2 to 10) <= std_logic_vector(fm2);
-	GPIO_1(11 to 35) <= (others=>'0');
-	GPIO_1(0 to 1) <= (others=>'0');
+	--GPIO_1(11 to 35) <= (others=>'0');
+	--GPIO_1(0 to 1) <= (others=>'0');
 	
 	VGA_SYNC_N <= '0';
 	VGA_BLANK_N <= '1';
-	VGA_R <= fm2(8 downto 1) when falling_edge(CLOCK_300);
-	VGA_G <= fm2(8 downto 1) when falling_edge(CLOCK_300);
-	VGA_B <= fm2(8 downto 1) when falling_edge(CLOCK_300);
-	VGA_CLK <= CLOCK_300;
+	VGA_R <= fm2(8 downto 1) when rising_edge(CLOCK_300);
+	--VGA_G <= "00000000";
+	VGA_G <= fm2(8 downto 1) when rising_edge(CLOCK_300);
+	VGA_B <= fm2(8 downto 1) when rising_edge(CLOCK_300);
+	VGA_CLK <= not CLOCK_300;
+	
+	--g1: for I in 0 to 7 generate
+	--	GPIO_1(2+7-I) <= dac_out(I);
+	--end generate;
+	dac_out <= fm2(8 downto 1) when rising_edge(CLOCK_300);
+	
 end;

@@ -1,7 +1,13 @@
 library ieee;
 use ieee.numeric_std.all;
 use ieee.std_logic_1164.all;
+package HEXdisplaypkg is
+	type HEXarray is array(5 downto 0) of std_logic_vector(6 downto 0);
+end package;
 
+library ieee;
+use ieee.numeric_std.all;
+use ieee.std_logic_1164.all;
 entity hexdisplay is
 	port(inp: in unsigned(3 downto 0);
 			outp: out std_logic_vector(6 downto 0);
@@ -31,4 +37,24 @@ gen_outp:
 		outp(I) <= not tmp(6-I) when disable='0' else '1';
 	end generate;
 end architecture;
+
+library ieee;
+library work;
+use ieee.numeric_std.all;
+use ieee.std_logic_1164.all;
+use work.HEXdisplaypkg.all;
+use work.hexdisplay;
+entity hexarraydisplay is
+	port(inp: in unsigned(23 downto 0);
+		outp: out HEXarray;
+		disable: in std_logic_vector(5 downto 0) := "000000");
+end entity;
+architecture a of hexarraydisplay is
+begin
+gen:
+	for I in 0 to 5 generate
+		hd: hexdisplay port map(inp(I*4+3 downto I*4),outp(I),disable(I));
+	end generate;
+end architecture;
+
 

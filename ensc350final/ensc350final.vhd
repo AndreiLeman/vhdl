@@ -12,6 +12,7 @@ use work.ps2Piano;
 use work.hexdisplay;
 use work.volumeControl;
 use work.ps2Receiver;
+use work.interpolator256;
 entity ensc350final is
 	port(CLOCK_50: in std_logic;
 			LEDR: out std_logic_vector(9 downto 0);
@@ -45,13 +46,16 @@ architecture a of ensc350final is
 			c0		: OUT STD_LOGIC 
 		);
 	end component pll_300;
-	signal aclk,vclk,CLOCK_135,CLOCK_300: std_logic;
+	signal interp_div: unsigned(2 downto 0);
+	signal aclk,aclk1,vclk,interp_clk,CLOCK_135,CLOCK_300: std_logic;
 	signal aoutL,aoutR,ainL,ainR,oscIn: signed(15 downto 0);
 	signal ainMono: signed(16 downto 0);
 	signal ainMonoScaled: signed(19 downto 0);
 	signal vga: unsigned(27 downto 0);
 	signal fm_intermediate,fm_out,CLOCK_100,CLOCK_100_1: std_logic;
-	signal dacIn,dacIn2: unsigned(15 downto 0);
+	signal interp_wr_en: std_logic;
+	signal interp_out: signed(23 downto 0);
+	signal dacIn,dacIn2: unsigned(23 downto 0);
 	signal dacClk,dacOut: std_logic;
 	signal mainAudio,mainAudio0: signed(15 downto 0);
 	
@@ -103,11 +107,18 @@ begin
 	GPIO(24) <= fm_out;
 	GPIO(25) <= not fm_out;
 	
+	--interpolator
+	interp_div <= interp_div+1 when rising_edge(CLOCK_50);
+	interp_clk <= interp_div(2);
+	aclk1 <= aclk when rising_edge(interp_clk);
+	interp_wr_en <= (aclk1 xor aclk) and aclk when rising_edge(interp_clk);
+	interp: interpolator256 port map(interp_clk,interp_wr_en,mainAudio&X"00",interp_out);
+	
 	--DAC
-	dacIn <= unsigned(mainAudio)+"1000000000000000" when rising_edge(aclk);
+	dacIn <= unsigned(interp_out)+"100000000000000000000000" when rising_edge(aclk);
 	dacIn2 <= dacIn when rising_edge(dacClk);
 	dacClk <= CLOCK_100;
-	dsm: deltaSigmaModulator generic map(11) port map(dacClk,dacIn2,dacOut);
+	dsm: deltaSigmaModulator generic map(11) port map(dacClk,dacIn2&X"00",dacOut);
 	GPIO(0) <= dacOut;
 	GPIO(1) <= not dacOut;
 	GPIO(7) <= dacOut;

@@ -17,3 +17,5 @@ begin
 	tmp <= inp*("0"&signed(scale));
 	outp <= tmp(25 downto 6);
 end architecture;
+
+

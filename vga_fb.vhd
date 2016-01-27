@@ -60,7 +60,7 @@ architecture a of vga_fb is
 	end component;
 	signal state,ns,previous_state: std_logic := '0';
 	signal next_read: std_logic;
-	signal a,next_a: unsigned(31 downto 0) := to_unsigned(0,32);
+	signal a,next_a,aP1: unsigned(31 downto 0) := to_unsigned(0,32);
 	signal wrusedw: std_logic_vector(8 downto 0);
 	signal outstanding1,next_outstanding1,outstanding2,next_outstanding2,
 		outstanding: unsigned(7 downto 0);
@@ -75,7 +75,7 @@ architecture a of vga_fb is
 	
 	signal fifo_q,fifo_q1: std_logic_vector(31 downto 0);
 	signal p: position;
-	signal fifo_rd_en,rst: std_logic;
+	signal fifo_rd_en,fifo_rd_en1,rst: std_logic;
 	signal a_overflow: std_logic;
 	signal a_end: unsigned(31 downto 0) := to_unsigned(0,32);
 	
@@ -90,9 +90,9 @@ architecture a of vga_fb is
 	signal vgadata: std_logic_vector(27 downto 0);
 begin
 	chip_en <= conf(124) when rising_edge(clk);
-	conf_w <= unsigned(conf(43 downto 32));
-	conf_h <= unsigned(conf(59 downto 48));
-	conf_misc <= unsigned(conf(127 downto 64));
+	conf_w <= unsigned(conf(43 downto 32)) when rising_edge(vclk);
+	conf_h <= unsigned(conf(59 downto 48)) when rising_edge(vclk);
+	conf_misc <= unsigned(conf(127 downto 64)) when rising_edge(vclk);
 	fbsize0 <= conf_w*conf_h*4;
 	
 	syn1in <= std_logic_vector(fbsize0(31 downto 0)) & conf(31 downto 0);
@@ -101,14 +101,17 @@ begin
 	syn: synchronizer generic map(64) port map(conf_clk,clk,syn1in,syn1out);
 	a_end <= conf_addr+fbsize when rst2='1' and rising_edge(clk);
 
-	vga_timer: vga_out2 generic map(syncdelay=>3)
+	vga_timer: vga_out2 generic map(syncdelay=>4)
 		port map(vgadata(24),vgadata(26),vgadata(25),vclk,p,conf_w,conf_h,
 			conf_misc(9 downto 0),conf_misc(19 downto 10),conf_misc(29 downto 20),
 			conf_misc(39 downto 30),conf_misc(49 downto 40),conf_misc(59 downto 50));
 	rst <= '1' when p(1)=conf_h and rising_edge(vclk) else
 		'0' when rising_edge(vclk);
-	fifo_rd_en <= '1' when p(1)<conf_h and p(0)<conf_w and conf(128)='1' else '0';
+	--output side
+	fifo_rd_en1 <= '1' when p(1)<conf_h and p(0)<conf_w and conf(128)='1' else '0';
+	fifo_rd_en <= fifo_rd_en1 when rising_edge(vclk);
 	fifo_q1 <= fifo_q when rising_edge(vclk);
+	
 	vgadata(23 downto 0) <= fifo_q1(23 downto 0);
 	vgadata(27) <= vclk;
 	vga(59 downto 32) <= vgadata;
@@ -119,9 +122,12 @@ begin
 	rst2 <= rst1 or real_rst when rising_edge(clk);
 	previous_state <= state when rising_edge(clk);
 	addr <= std_logic_vector(a);
-	next_a <= conf_addr when rst2='1' or a+8*burstc>=a_end else
-		a+8*burstc;
-	a <= conf_addr when rst2='1' else next_a when falling_edge(state);
+	next_a <= conf_addr when rst2='1' or aP1>=a_end else aP1;
+	aP1 <= a+8*burstc when rising_edge(clk);
+	a <= conf_addr when rst2='1' and rising_edge(clk)
+		else next_a when previous_state='1' and state='0' and rising_edge(clk)
+		else a when rising_edge(clk);
+	
 	a_overflow <= '1' when a>a_end else '0';
 	
 	

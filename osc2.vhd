@@ -46,21 +46,33 @@ architecture a of simple_oscilloscope is
 	signal vclk: std_logic;
 	signal vga_conf: unsigned(91 downto 0);
 begin
-	pll: work.simple_altera_pll generic map(infreq=>"50.0 MHz",outfreq=>"135 MHz")
+	pll: work.simple_altera_pll generic map(infreq=>"50.0 MHz",outfreq=>"64.102564 MHz")
 		port map(inclk=>CLOCK_50,outclk=>vclk);
+--	pll: work.simple_altera_pll generic map(infreq=>"50.0 MHz",outfreq=>"135 MHz")
+--		port map(inclk=>CLOCK_50,outclk=>vclk);
 --	pll: work.simple_altera_pll generic map(infreq=>"50.0 MHz",outfreq=>"172.857142 MHz")
 --		port map(inclk=>CLOCK_50,outclk=>vclk);
 	o: osc2 port map(vclk,aclk,vga_conf,vga_out,datain,samples_per_px,stop);
 	
 	vga_conf <= 
 		to_unsigned(3,10) &
-		to_unsigned(38,10) &
+		to_unsigned(23,10) &
 		to_unsigned(1,10) &
-		to_unsigned(144,10) &
-		to_unsigned(248,10) &
-		to_unsigned(16,10) &
-		to_unsigned(1024,16) &
-		to_unsigned(1280,16);
+		to_unsigned(104,10) &
+		to_unsigned(160,10) &
+		to_unsigned(56,10) &
+		to_unsigned(768,16) &
+		to_unsigned(1024,16);
+		
+--	vga_conf <= 
+--		to_unsigned(3,10) &
+--		to_unsigned(38,10) &
+--		to_unsigned(1,10) &
+--		to_unsigned(144,10) &
+--		to_unsigned(248,10) &
+--		to_unsigned(16,10) &
+--		to_unsigned(1024,16) &
+--		to_unsigned(1280,16);
 
 --	vga_conf <= 
 --		to_unsigned(3,10) &

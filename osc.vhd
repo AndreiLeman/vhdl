@@ -25,15 +25,15 @@ architecture a of osc is
 			locked   : out std_logic         --  locked.export
 		);
 	end component pll_65;
-	constant W: integer := 1280;
-	constant H: integer := 1024;
+	constant W: integer := 1024;
+	constant H: integer := 768;
 	signal clk: std_logic;
 	signal x,y: unsigned(11 downto 0);
 	type pixel is array(0 to 2) of unsigned(7 downto 0);
 	signal p: color;
 begin
 	--pll: component pll_65 port map(refclk=>CLOCK_50,outclk_0=>clk);
-	pll: work.simple_altera_pll generic map(infreq=>"50.0 MHz",outfreq=>"135.000000 MHz")
+	pll: work.simple_altera_pll generic map(infreq=>"50.0 MHz",outfreq=>"64.102564 MHz")
 		port map(inclk=>CLOCK_50,outclk=>clk);
 	vga_timer: vga_out generic map(W=>W,H=>H,syncdelay=>4)
 		port map(VGA_SYNC_N=>VGA_SYNC_N,VGA_BLANK_N=>VGA_BLANK_N,

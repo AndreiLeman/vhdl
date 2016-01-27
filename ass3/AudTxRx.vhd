@@ -34,14 +34,14 @@ Begin
 --	RTxShiftReg <= RdataReg when (Falling_Edge(Bclk) and DacLrc = '0') else
 --						RTxShiftReg(30 downto 0) & '0' when (Falling_Edge(Bclk) and DacLrc = '1')
 --						else RTxShiftReg;
-	LTxShiftReg <= LdataReg when (rising_Edge(Bclk) and DacLrc = '0') else
-						LTxShiftReg(30 downto 0) & '0' when (rising_Edge(Bclk) and DacLrc = '1')
+	LTxShiftReg <= LdataReg when (Falling_Edge(Bclk) and DacLrc = '0') else
+						LTxShiftReg(30 downto 0) & '0' when (Falling_Edge(Bclk) and DacLrc = '1')
 						else LTxShiftReg;
-	RTxShiftReg <= RdataReg when (rising_Edge(Bclk) and DacLrc = '1') else
-						RTxShiftReg(30 downto 0) & '0' when (rising_Edge(Bclk) and DacLrc = '0')
+	RTxShiftReg <= RdataReg when (Falling_Edge(Bclk) and DacLrc = '1') else
+						RTxShiftReg(30 downto 0) & '0' when (Falling_Edge(Bclk) and DacLrc = '0')
 						else RTxShiftReg;
-	datL <= LTxShiftReg(31) when falling_Edge(Bclk);
-	datR <= RTxShiftReg(31) when falling_Edge(Bclk);
+	datL <= LTxShiftReg(31);-- when rising_Edge(Bclk);
+	datR <= RTxShiftReg(31);-- when rising_Edge(Bclk);
 	DacDat <= datL when DacLrc = '1' else datR;
 End Architecture dataflow;
 --***************************************************************************

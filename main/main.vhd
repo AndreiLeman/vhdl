@@ -8,6 +8,7 @@ use work.graphics_types.all;
 use work.signedClipper;
 use work.deltaSigmaModulator;
 use work.deltaSigmaModulator2;
+use work.interpolator256;
 entity main is
 	port(CLOCK_50: in std_logic;
 			LEDR: out std_logic_vector(9 downto 0);
@@ -50,7 +51,7 @@ entity main is
 			);
 end entity;
 architecture a of main is
-    component hps1 is
+    component main_hps is
         port (
             clk_clk                               : in    std_logic                      := 'X';             -- clk
             reset_reset_n                         : in    std_logic                      := 'X';             -- reset_n
@@ -143,7 +144,7 @@ architecture a of main is
             vga_fb_conf_export                    : in    std_logic_vector(128 downto 0) := (others => 'X'); -- export
             vga_fb_reg_conf_export                : out   std_logic_vector(127 downto 0)                     -- export
         );
-    end component hps1;
+    end component;
 	 
 	-- # of samples; each sample is 32 bits (16 for left, 16 for right)
 	constant audio_bufsize: integer := 65536/4;
@@ -165,10 +166,15 @@ architecture a of main is
 	signal osc_in: signed(13 downto 0);
 	signal aoutMono0: signed(16 downto 0);
 	signal aoutMono: signed(15 downto 0);
-	signal dacIn: unsigned(15 downto 0);
+	signal dacIn: unsigned(23 downto 0);
 	signal audioCClk,dacClk,dacOut: std_logic;
 	signal dacOut2: unsigned(3 downto 0);
 	signal dram_dqm: std_logic_vector(1 downto 0);
+	
+	signal aclk1,interp_clk,interp_wr_en: std_logic;
+	signal interp_out: signed(24 downto 0);
+	signal interp_out1: signed(23 downto 0);
+	signal interp_div: unsigned(2 downto 0);
 
 	signal fb_conf: std_logic_vector(127 downto 0);
 	signal fb_vga_out: std_logic_vector(59 downto 0);
@@ -205,16 +211,29 @@ begin
 	audioCClk <= not audioCClk when rising_edge(dacClk);
 	aoutMono0 <= (aoutL(15)&aoutL)+(aoutR(15)&aoutR);
 	aoutMono <= aoutMono0(16 downto 1) when rising_edge(aclk);
-	dacIn <= unsigned(aoutMono)+"1000000000000000" when rising_edge(dacClk);
-	dsm: deltaSigmaModulator generic map(12) port map(dacClk,dacIn,dacOut);
-	dsm2: deltaSigmaModulator2 generic map(12) port map(dacClk,dacIn,dacOut2);
+	
+	
+	--interpolator
+	interp_div <= "000" when interp_div="010" and rising_edge(dacClk) else
+		interp_div+1 when rising_edge(dacClk);
+	interp_clk <= '1' when interp_div="000" and rising_edge(dacClk) else
+		'0' when rising_edge(dacClk);
+	aclk1 <= aclk when rising_edge(interp_clk);
+	interp_wr_en <= (aclk1 xor aclk) and aclk when rising_edge(interp_clk);
+	interp: interpolator256 port map(interp_clk,interp_wr_en,aoutMono&X"00",interp_out);
+	
+	--DAC
+	dacCl: signedClipper generic map(25,24) port map(interp_out,interp_out1);
+	dacIn <= unsigned(interp_out1)+"100000000000000000000000" when rising_edge(dacClk);
+	dsm: deltaSigmaModulator generic map(11) port map(dacClk,dacIn&X"00",dacOut);
+	dsm2: deltaSigmaModulator2 generic map(12) port map(dacClk,dacIn&X"00",dacOut2);
 	GPIO_0(2) <= dacOut2(3);
 	GPIO_0(3) <= dacOut2(2);
 	GPIO_0(4) <= dacOut2(1);
 	GPIO_0(5) <= dacOut2(0);
 	GPIO_0(1) <= dacOut;
 	GPIO_0(7) <= not dacOut;
-	
+	GPIO_0(0) <= not dacOut;
 	
 	audio_regs(0) <= '1' when mem_raddr>=audio_bufsize_words/2 and rising_edge(aclk)
 		else '0' when rising_edge(aclk);
@@ -266,7 +285,7 @@ begin
 	VGA_HS <= not vga_out(25);
 	VGA_VS <= not vga_out(26);
 	
-	hps: component hps1 port map(
+	hps: component main_hps port map(
 		clk_clk                               => CLOCK_50,			--clk.clk
 		reset_reset_n                         => '1',				--reset.reset_n
 		memory_mem_a                          => HPS_DDR3_ADDR,    	--memory.mem_a

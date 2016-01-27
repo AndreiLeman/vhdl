@@ -38,7 +38,7 @@
 
 set_global_assignment -name FAMILY "Cyclone V"
 set_global_assignment -name DEVICE 5CSEMA5F31C6
-set_global_assignment -name TOP_LEVEL_ENTITY test2
+set_global_assignment -name TOP_LEVEL_ENTITY test4
 set_global_assignment -name ORIGINAL_QUARTUS_VERSION 13.1
 set_global_assignment -name PROJECT_CREATION_TIME_DATE "22:48:41  MARCH 20, 2014"
 set_global_assignment -name LAST_QUARTUS_VERSION 13.1
@@ -50,7 +50,7 @@ set_global_assignment -name DEVICE_FILTER_SPEED_GRADE 6
 set_global_assignment -name ERROR_CHECK_FREQUENCY_DIVISOR 256
 set_global_assignment -name EDA_SIMULATION_TOOL "ModelSim-Altera (VHDL)"
 set_global_assignment -name EDA_OUTPUT_DATA_FORMAT VHDL -section_id eda_simulation
-set_global_assignment -name PHYSICAL_SYNTHESIS_COMBO_LOGIC_FOR_AREA ON
+set_global_assignment -name PHYSICAL_SYNTHESIS_COMBO_LOGIC_FOR_AREA OFF
 set_global_assignment -name POWER_PRESET_COOLING_SOLUTION "23 MM HEAT SINK WITH 200 LFPM AIRFLOW"
 set_global_assignment -name POWER_BOARD_THERMAL_MODEL "NONE (CONSERVATIVE)"
 set_global_assignment -name OPTIMIZE_HOLD_TIMING "ALL PATHS"
@@ -449,6 +449,49 @@ set_location_assignment PIN_U8 -to altera_reserved_tdi
 set_location_assignment PIN_AB9 -to altera_reserved_tdo
 set_location_assignment PIN_V9 -to altera_reserved_tms
 set_location_assignment PIN_AK24 -to GPIO_1[22
+set_global_assignment -name STRATIX_DEVICE_IO_STANDARD "2.5 V"
+set_global_assignment -name ENABLE_SIGNALTAP OFF
+set_global_assignment -name USE_SIGNALTAP_FILE stp1.stp
+set_global_assignment -name VHDL_FILE ../osc.vhd
+set_global_assignment -name VHDL_FILE ../simple_oscilloscope.vhd
+set_global_assignment -name VHDL_FILE ../simple_counter.vhd
+set_global_assignment -name VHDL_FILE ../vga2.vhd
+set_global_assignment -name VHDL_FILE ../vga1.vhd
+set_global_assignment -name VHDL_FILE ../graphics_types.vhd
+set_global_assignment -name VHDL_FILE ../generic_oscilloscope.vhd
+set_global_assignment -name VHDL_FILE ../osc_ram.vhd
+set_global_assignment -name QIP_FILE ../osc_ram.qip
+set_global_assignment -name SOURCE_FILE ../osc_ram.cmp
+set_global_assignment -name VHDL_FILE ../signed_clipper.vhd
+set_global_assignment -name VHDL_FILE ../volume_control.vhd
+set_global_assignment -name VHDL_FILE ../sine_generator.vhd
+set_global_assignment -name VHDL_FILE ../sin.vhd
+set_global_assignment -name VHDL_FILE ../delta_sigma.vhd
+set_global_assignment -name VHDL_FILE ../ass3/I2CTxCu.vhd
+set_global_assignment -name VHDL_FILE ../ass3/I2CTx.vhd
+set_global_assignment -name VHDL_FILE ../ass3/CodecInit.vhd
+set_global_assignment -name VHDL_FILE ../ass3/ClockGen.vhd
+set_global_assignment -name VHDL_FILE ../ass3/AudTxRx.vhd
+set_global_assignment -name VHDL_FILE ../ass3/AudioSubSystemStereo.vhd
+set_global_assignment -name VHDL_FILE ../slow_clock.vhd
+set_global_assignment -name VHDL_FILE ../counter.vhd
+set_global_assignment -name VHDL_FILE ../pll.vhd
+set_global_assignment -name VHDL_FILE ../hexdisplay.vhd
+set_global_assignment -name VHDL_FILE test1.vhd
+set_global_assignment -name VHDL_FILE test2.vhd
+set_global_assignment -name CDF_FILE Chain1.cdf
+set_global_assignment -name VHDL_FILE ../base10_extract.vhd
+set_global_assignment -name VHDL_FILE ../base10_display.vhd
+set_global_assignment -name VHDL_FILE test3.vhd
+set_global_assignment -name VHDL_FILE test4.vhd
+set_global_assignment -name VHDL_FILE test5.vhd
+set_global_assignment -name VHDL_FILE ../delta_sigma_3.vhd
+set_global_assignment -name SIGNALTAP_FILE stp1.stp
+set_global_assignment -name VHDL_FILE test6.vhd
+set_global_assignment -name PHYSICAL_SYNTHESIS_COMBO_LOGIC ON
+set_global_assignment -name PHYSICAL_SYNTHESIS_REGISTER_RETIMING OFF
+set_global_assignment -name PHYSICAL_SYNTHESIS_REGISTER_DUPLICATION OFF
+set_global_assignment -name VHDL_FILE ../delta_sigma_4.vhd
 set_global_assignment -name PARTITION_NETLIST_TYPE SOURCE -section_id Top
 set_global_assignment -name PARTITION_FITTER_PRESERVATION_LEVEL PLACEMENT_AND_ROUTING -section_id Top
 set_global_assignment -name PARTITION_COLOR 16764057 -section_id Top
@@ -874,9 +917,4 @@ set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to VGA_R[0]
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to VGA_SYNC_N
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to VGA_VS
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to HPS_LTC_GPIO
-set_global_assignment -name STRATIX_DEVICE_IO_STANDARD "2.5 V"
-set_global_assignment -name VHDL_FILE ../hexdisplay.vhd
-set_global_assignment -name VHDL_FILE test1.vhd
-set_global_assignment -name VHDL_FILE test2.vhd
-set_global_assignment -name CDF_FILE Chain1.cdf
 set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top

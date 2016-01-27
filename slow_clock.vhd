@@ -16,7 +16,7 @@ architecture a of slow_clock is
 	signal next_out: std_logic;
 begin
 	cs <= ns when rising_edge(clk);
-	ns <= cs+1 when cs<divide else to_unsigned(0,b);
+	ns <= cs+1 when cs<(divide-1) else to_unsigned(0,b);
 	next_out <= '1' when cs<dutycycle else '0';
 	o <= next_out when rising_edge(clk);
 end architecture;

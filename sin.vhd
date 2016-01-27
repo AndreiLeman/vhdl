@@ -8,51 +8,90 @@ entity sin_rom is
 end entity;
 architecture a of sin_rom is
 	type rom1t is array(0 to 511) of unsigned(7 downto 0);
-	signal rom1: rom1t := (X"00",X"01",X"02",X"03",X"04",X"04",X"05",X"06",X"07",
-		X"07",X"08",X"09",X"0A",X"0B",X"0B",X"0C",X"0D",X"0E",X"0E",X"0F",X"10",
-		X"11",X"12",X"12",X"13",X"14",X"15",X"15",X"16",X"17",X"18",X"19",X"19",
-		X"1A",X"1B",X"1C",X"1C",X"1D",X"1E",X"1F",X"20",X"20",X"21",X"22",X"23",
-		X"23",X"24",X"25",X"26",X"27",X"27",X"28",X"29",X"2A",X"2A",X"2B",X"2C",
-		X"2D",X"2E",X"2E",X"2F",X"30",X"31",X"31",X"32",X"33",X"34",X"34",X"35",
-		X"36",X"37",X"37",X"38",X"39",X"3A",X"3B",X"3B",X"3C",X"3D",X"3E",X"3E",
-		X"3F",X"40",X"41",X"41",X"42",X"43",X"44",X"44",X"45",X"46",X"47",X"47",
-		X"48",X"49",X"4A",X"4A",X"4B",X"4C",X"4D",X"4D",X"4E",X"4F",X"50",X"50",
-		X"51",X"52",X"53",X"53",X"54",X"55",X"56",X"56",X"57",X"58",X"58",X"59",
-		X"5A",X"5B",X"5B",X"5C",X"5D",X"5E",X"5E",X"5F",X"60",X"60",X"61",X"62",
-		X"63",X"63",X"64",X"65",X"66",X"66",X"67",X"68",X"68",X"69",X"6A",X"6B",
-		X"6B",X"6C",X"6D",X"6D",X"6E",X"6F",X"6F",X"70",X"71",X"72",X"72",X"73",
-		X"74",X"74",X"75",X"76",X"76",X"77",X"78",X"79",X"79",X"7A",X"7B",X"7B",
-		X"7C",X"7D",X"7D",X"7E",X"7F",X"7F",X"80",X"81",X"81",X"82",X"83",X"83",
-		X"84",X"85",X"85",X"86",X"87",X"87",X"88",X"89",X"89",X"8A",X"8B",X"8B",
-		X"8C",X"8D",X"8D",X"8E",X"8F",X"8F",X"90",X"91",X"91",X"92",X"93",X"93",
-		X"94",X"94",X"95",X"96",X"96",X"97",X"98",X"98",X"99",X"99",X"9A",X"9B",
-		X"9B",X"9C",X"9D",X"9D",X"9E",X"9E",X"9F",X"A0",X"A0",X"A1",X"A1",X"A2",
-		X"A3",X"A3",X"A4",X"A4",X"A5",X"A6",X"A6",X"A7",X"A7",X"A8",X"A9",X"A9",
-		X"AA",X"AA",X"AB",X"AC",X"AC",X"AD",X"AD",X"AE",X"AE",X"AF",X"B0",X"B0",
-		X"B1",X"B1",X"B2",X"B2",X"B3",X"B3",X"B4",X"B5",X"B5",X"B6",X"B6",X"B7",
-		X"B7",X"B8",X"B8",X"B9",X"B9",X"BA",X"BB",X"BB",X"BC",X"BC",X"BD",X"BD",
-		X"BE",X"BE",X"BF",X"BF",X"C0",X"C0",X"C1",X"C1",X"C2",X"C2",X"C3",X"C3",
-		X"C4",X"C4",X"C5",X"C5",X"C6",X"C6",X"C7",X"C7",X"C8",X"C8",X"C9",X"C9",
-		X"CA",X"CA",X"CB",X"CB",X"CC",X"CC",X"CD",X"CD",X"CE",X"CE",X"CE",X"CF",
-		X"CF",X"D0",X"D0",X"D1",X"D1",X"D2",X"D2",X"D2",X"D3",X"D3",X"D4",X"D4",
-		X"D5",X"D5",X"D6",X"D6",X"D6",X"D7",X"D7",X"D8",X"D8",X"D8",X"D9",X"D9",
-		X"DA",X"DA",X"DB",X"DB",X"DB",X"DC",X"DC",X"DD",X"DD",X"DD",X"DE",X"DE",
-		X"DE",X"DF",X"DF",X"E0",X"E0",X"E0",X"E1",X"E1",X"E1",X"E2",X"E2",X"E3",
-		X"E3",X"E3",X"E4",X"E4",X"E4",X"E5",X"E5",X"E5",X"E6",X"E6",X"E6",X"E7",
-		X"E7",X"E7",X"E8",X"E8",X"E8",X"E9",X"E9",X"E9",X"EA",X"EA",X"EA",X"EB",
-		X"EB",X"EB",X"EB",X"EC",X"EC",X"EC",X"ED",X"ED",X"ED",X"ED",X"EE",X"EE",
-		X"EE",X"EF",X"EF",X"EF",X"EF",X"F0",X"F0",X"F0",X"F0",X"F1",X"F1",X"F1",
-		X"F2",X"F2",X"F2",X"F2",X"F2",X"F3",X"F3",X"F3",X"F3",X"F4",X"F4",X"F4",
-		X"F4",X"F5",X"F5",X"F5",X"F5",X"F5",X"F6",X"F6",X"F6",X"F6",X"F6",X"F7",
-		X"F7",X"F7",X"F7",X"F7",X"F8",X"F8",X"F8",X"F8",X"F8",X"F9",X"F9",X"F9",
-		X"F9",X"F9",X"F9",X"FA",X"FA",X"FA",X"FA",X"FA",X"FA",X"FA",X"FB",X"FB",
-		X"FB",X"FB",X"FB",X"FB",X"FB",X"FC",X"FC",X"FC",X"FC",X"FC",X"FC",X"FC",
-		X"FC",X"FD",X"FD",X"FD",X"FD",X"FD",X"FD",X"FD",X"FD",X"FD",X"FD",X"FD",
-		X"FE",X"FE",X"FE",X"FE",X"FE",X"FE",X"FE",X"FE",X"FE",X"FE",X"FE",X"FE",
-		X"FE",X"FE",X"FE",X"FF",X"FF",X"FF",X"FF",X"FF",X"FF",X"FF",X"FF",X"FF",
-		X"FF",X"FF",X"FF",X"FF",X"FF",X"FF",X"FF",X"FF",X"FF",X"FF",X"FF");
+	signal rom1: rom1t := 
+	(X"00", X"01", X"02", X"03", X"04", X"04", X"05", X"06", X"07", X"07",
+		X"08", X"09", X"0a", X"0b", X"0b", X"0c", X"0d", X"0e", X"0e", X"0f",
+		X"10", X"11", X"12", X"12", X"13", X"14", X"15", X"15", X"16", X"17",
+		X"18", X"19", X"19", X"1a", X"1b", X"1c", X"1c", X"1d", X"1e", X"1f",
+		X"20", X"20", X"21", X"22", X"23", X"23", X"24", X"25", X"26", X"27",
+		X"27", X"28", X"29", X"2a", X"2a", X"2b", X"2c", X"2d", X"2e", X"2e",
+		X"2f", X"30", X"31", X"31", X"32", X"33", X"34", X"34", X"35", X"36",
+		X"37", X"37", X"38", X"39", X"3a", X"3b", X"3b", X"3c", X"3d", X"3e",
+		X"3e", X"3f", X"40", X"41", X"41", X"42", X"43", X"44", X"44", X"45",
+		X"46", X"47", X"47", X"48", X"49", X"4a", X"4a", X"4b", X"4c", X"4d",
+		X"4d", X"4e", X"4f", X"50", X"50", X"51", X"52", X"53", X"53", X"54",
+		X"55", X"56", X"56", X"57", X"58", X"58", X"59", X"5a", X"5b", X"5b",
+		X"5c", X"5d", X"5e", X"5e", X"5f", X"60", X"60", X"61", X"62", X"63",
+		X"63", X"64", X"65", X"66", X"66", X"67", X"68", X"68", X"69", X"6a",
+		X"6b", X"6b", X"6c", X"6d", X"6d", X"6e", X"6f", X"6f", X"70", X"71",
+		X"72", X"72", X"73", X"74", X"74", X"75", X"76", X"76", X"77", X"78",
+		X"79", X"79", X"7a", X"7b", X"7b", X"7c", X"7d", X"7d", X"7e", X"7f",
+		X"7f", X"80", X"81", X"81", X"82", X"83", X"83", X"84", X"85", X"85",
+		X"86", X"87", X"87", X"88", X"89", X"89", X"8a", X"8b", X"8b", X"8c",
+		X"8d", X"8d", X"8e", X"8f", X"8f", X"90", X"91", X"91", X"92", X"93",
+		X"93", X"94", X"94", X"95", X"96", X"96", X"97", X"98", X"98", X"99",
+		X"99", X"9a", X"9b", X"9b", X"9c", X"9d", X"9d", X"9e", X"9e", X"9f",
+		X"a0", X"a0", X"a1", X"a1", X"a2", X"a3", X"a3", X"a4", X"a4", X"a5",
+		X"a6", X"a6", X"a7", X"a7", X"a8", X"a9", X"a9", X"aa", X"aa", X"ab",
+		X"ac", X"ac", X"ad", X"ad", X"ae", X"ae", X"af", X"b0", X"b0", X"b1",
+		X"b1", X"b2", X"b2", X"b3", X"b3", X"b4", X"b5", X"b5", X"b6", X"b6",
+		X"b7", X"b7", X"b8", X"b8", X"b9", X"b9", X"ba", X"bb", X"bb", X"bc",
+		X"bc", X"bd", X"bd", X"be", X"be", X"bf", X"bf", X"c0", X"c0", X"c1",
+		X"c1", X"c2", X"c2", X"c3", X"c3", X"c4", X"c4", X"c5", X"c5", X"c6",
+		X"c6", X"c7", X"c7", X"c8", X"c8", X"c9", X"c9", X"ca", X"ca", X"cb",
+		X"cb", X"cc", X"cc", X"cd", X"cd", X"ce", X"ce", X"ce", X"cf", X"cf",
+		X"d0", X"d0", X"d1", X"d1", X"d2", X"d2", X"d2", X"d3", X"d3", X"d4",
+		X"d4", X"d5", X"d5", X"d6", X"d6", X"d6", X"d7", X"d7", X"d8", X"d8",
+		X"d8", X"d9", X"d9", X"da", X"da", X"db", X"db", X"db", X"dc", X"dc",
+		X"dd", X"dd", X"dd", X"de", X"de", X"de", X"df", X"df", X"e0", X"e0",
+		X"e0", X"e1", X"e1", X"e1", X"e2", X"e2", X"e3", X"e3", X"e3", X"e4",
+		X"e4", X"e4", X"e5", X"e5", X"e5", X"e6", X"e6", X"e6", X"e7", X"e7",
+		X"e7", X"e8", X"e8", X"e8", X"e9", X"e9", X"e9", X"ea", X"ea", X"ea",
+		X"eb", X"eb", X"eb", X"eb", X"ec", X"ec", X"ec", X"ed", X"ed", X"ed",
+		X"ed", X"ee", X"ee", X"ee", X"ef", X"ef", X"ef", X"ef", X"f0", X"f0",
+		X"f0", X"f0", X"f1", X"f1", X"f1", X"f2", X"f2", X"f2", X"f2", X"f2",
+		X"f3", X"f3", X"f3", X"f3", X"f4", X"f4", X"f4", X"f4", X"f5", X"f5",
+		X"f5", X"f5", X"f5", X"f6", X"f6", X"f6", X"f6", X"f6", X"f7", X"f7",
+		X"f7", X"f7", X"f7", X"f8", X"f8", X"f8", X"f8", X"f8", X"f9", X"f9",
+		X"f9", X"f9", X"f9", X"f9", X"fa", X"fa", X"fa", X"fa", X"fa", X"fa",
+		X"fa", X"fb", X"fb", X"fb", X"fb", X"fb", X"fb", X"fb", X"fc", X"fc",
+		X"fc", X"fc", X"fc", X"fc", X"fc", X"fc", X"fd", X"fd", X"fd", X"fd",
+		X"fd", X"fd", X"fd", X"fd", X"fd", X"fd", X"fd", X"fe", X"fe", X"fe",
+		X"fe", X"fe", X"fe", X"fe", X"fe", X"fe", X"fe", X"fe", X"fe", X"fe",
+		X"fe", X"fe", X"ff", X"ff", X"ff", X"ff", X"ff", X"ff", X"ff", X"ff",
+		X"ff", X"ff", X"ff", X"ff", X"ff", X"ff", X"ff", X"ff", X"ff", X"ff",
+		X"ff", X"ff");
 	signal addr1: unsigned(8 downto 0);
 begin
 	addr1 <= addr when rising_edge(clk);
 	q <= rom1(to_integer(addr1));
+end architecture;
+
+library ieee;
+use ieee.numeric_std.all;
+use ieee.std_logic_1164.all;
+use work.sin_rom;
+entity sin is
+	port(clk: in std_logic;
+			t: in unsigned(11 downto 0); -- fraction only
+			outp: out signed(8 downto 0)); -- output is sin(2*pi*t)*255
+			-- delay is 3 clock cycles
+end entity;
+architecture a of sin is
+	constant lutAddrBits: integer := 9;
+	signal lut_addr: unsigned(lutAddrBits-1 downto 0);
+	signal lut_q,lut_q1: unsigned(7 downto 0);
+	signal out_tmp: signed(8 downto 0);
+	signal invert1,invert2: std_logic;
+begin
+	lut_addr <= t(lutAddrBits-1 downto 0) when t(lutAddrBits)='0'
+		else not t(lutAddrBits-1 downto 0);
+	rom: sin_rom port map(lut_addr,clk,lut_q);
+	lut_q1 <= lut_q when rising_edge(clk);
+	invert1 <= t(lutAddrBits+1) when rising_edge(clk);
+	invert2 <= invert1 when rising_edge(clk);
+	
+	out_tmp <= "0"&signed(lut_q1) when invert2='0' else
+		("1"&signed(not lut_q1))+1;
+	outp <= out_tmp when rising_edge(clk);
 end architecture;

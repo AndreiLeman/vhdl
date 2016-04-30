@@ -11,6 +11,7 @@
 #include <signal.h>
 #include <sys/ioctl.h>
 #include <assert.h>
+#include <poll.h>
 
 typedef unsigned long ul;
 typedef unsigned int ui;
@@ -21,7 +22,7 @@ typedef struct {
 	unsigned long physAddr;
 } xaxaxadma_allocArg;
 
-static const int bufSize=1024*1024*8;
+static const int bufSize=1024*1024*16;
 
 #define H2F_BASE (0xC0000000) // axi_master
 #define H2F_SPAN (0x40000000) // Bridge size
@@ -33,6 +34,28 @@ static const int bufSize=1024*1024*8;
 #define STREAM2HPS_IRQ "/dev/uio1"
 
 volatile u32* s2hRegs=NULL;
+
+int _readIrq(int fd) {
+	int irqcount;
+	int irqen=1;
+	if(read(fd,&irqcount,sizeof(irqcount))>0) {
+		write(fd,&irqen,sizeof(irqen));
+		return irqcount;
+	}
+	return -1;
+}
+int waitForIrq(int fd) {
+	//return _readIrq(fd);
+	pollfd pfd;
+	pfd.fd = fd;
+	pfd.events = POLLIN;
+	if(poll(&pfd, 1, 0)>0) {
+		fprintf(stderr,"missed interrupt\n");
+		//_readIrq(fd);
+	}
+	return _readIrq(fd);
+}
+
 
 void handleExit(int sig) {
 	//disable device
@@ -47,6 +70,7 @@ void handleExit(int sig) {
 	exit(1);
 }
 int main(int argc,char** argv) {
+	fcntl(1, F_SETPIPE_SZ, 67108864);
 	//should always do this at the beginning of EVERY program you ever write
 	//***************************************
 	//ignore SIGHUP and SIGPIPE
@@ -124,8 +148,8 @@ int main(int argc,char** argv) {
 	}
 	int irqcount,irqen=1,irqcount2=0,irqprev;
 	write(irqfd,&irqen,sizeof(irqen));
-	while(read(irqfd,&irqcount,sizeof(irqcount))>0) {
-		write(irqfd,&irqen,sizeof(irqen));
+	while((irqcount=waitForIrq(irqfd))>0) {
+		//write(irqfd,&irqen,sizeof(irqen));
 		irqcount2++;
 		if(irqcount2==1) {
 			irqprev=irqcount;

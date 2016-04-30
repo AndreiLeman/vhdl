@@ -316,6 +316,11 @@ struct svfParser {
 	string _readHexValue() {
 		_expectChar('(');
 		string s=_readWord();
+		while(s.length()>0 && s[s.length()-1]!=')') {
+			string tmp=_readWord();
+			if(tmp.length()<=0) break;
+			s+=tmp;
+		}
 		if(s[s.length()-1]!=')') {
 			_expectChar(')');
 			return svfParseHex(s.data(),s.length());
@@ -542,20 +547,21 @@ struct svfPlayer {
 #define HW_REGS_BASE ( 0xFC000000 )     //misc. registers
 #define HW_REGS_SPAN ( 0x04000000 )
 #define LWH2F_OFFSET 52428800
-#define GPIOOUT 0x10
-#define GPIOIN 0x30
+#define GPIOOUT 0x0
+#define GPIOIN 0x10
 typedef unsigned long ul;
 typedef unsigned int ui;
 typedef uint32_t u32;
+typedef uint32_t u16;
 typedef uint64_t u64;
 typedef uint8_t u8;
 
-volatile u32* gpioIn;
-volatile u32* gpioOut;
-#define GPIOTCK 0
-#define GPIOTMS 1
-#define GPIOTDI 2
-#define GPIOTDO 0
+volatile u16* gpioIn;
+volatile u16* gpioOut;
+#define GPIOTCK 10
+#define GPIOTMS 11
+#define GPIOTDI 12
+#define GPIOTDO 13
 u64 ioDelayCycles=0;
 
 void doDelay(u64 cycles) {
@@ -568,9 +574,16 @@ u64 tsToNs(const struct timespec& ts) {
 u64 measureTime(u64 cycles) {
 	struct timespec t,t2;
 	clock_gettime(CLOCK_MONOTONIC,&t);
-	doDelay(cycles);
+	doDelay(cycles); doDelay(cycles); doDelay(cycles); doDelay(cycles);
+	doDelay(cycles); doDelay(cycles); doDelay(cycles); doDelay(cycles);
+	doDelay(cycles); doDelay(cycles); doDelay(cycles); doDelay(cycles);
+	doDelay(cycles); doDelay(cycles); doDelay(cycles); doDelay(cycles);
+	doDelay(cycles); doDelay(cycles); doDelay(cycles); doDelay(cycles);
+	doDelay(cycles); doDelay(cycles); doDelay(cycles); doDelay(cycles);
+	doDelay(cycles); doDelay(cycles); doDelay(cycles); doDelay(cycles);
+	doDelay(cycles); doDelay(cycles); doDelay(cycles); doDelay(cycles);
 	clock_gettime(CLOCK_MONOTONIC,&t2);
-	return tsToNs(t2)-tsToNs(t);
+	return (tsToNs(t2)-tsToNs(t))/32;
 }
 u64 measureTime2(u64 cycles) {
 	u64 min=measureTime(cycles);
@@ -618,9 +631,9 @@ void executeCommands(const string& buf, int lineNum) {
 		bool tdiEnable=cmd&(1<<3);
 		bool tdoEnable=cmd&(1<<4);
 		
-		if(tdiEnable) printf("tdi=%d ",(int)tdi);
-		if(tdoEnable) printf("tdo=%d ",(int)tdo);
-		printf("tms=%d\n",(int)tms);
+		//if(tdiEnable) printf("tdi=%d ",(int)tdi);
+		//if(tdoEnable) printf("tdo=%d ",(int)tdo);
+		//printf("tms=%d\n",(int)tms);
 		
 		//put data on the line and set tck low
 		*gpioOut=(tms<<GPIOTMS)|(tdi<<GPIOTDI);
@@ -636,17 +649,27 @@ void executeCommands(const string& buf, int lineNum) {
 		}
 	}
 }
-int main() {
+int main(int argc, char** argv) {
+	if(argc<2) {
+		printf("usage: %s CLKPERIOD_NS\n",argv[0]);
+		return 1;
+	}
+	int halfperiod=atoi(argv[1])/2;
+	
 	int fd;
 	if((fd = open("/dev/mem", O_RDWR | O_SYNC)) < 0) {
 		printf( "ERROR: could not open \"/dev/mem\"...\n" ); return 1;
 	}
 	//u8* h2f = (u8*)mmap( NULL, H2F_SPAN, ( PROT_READ | PROT_WRITE ), MAP_SHARED, fd, H2F_BASE);
 	u8* hwreg = (u8*)mmap( NULL, HW_REGS_SPAN, ( PROT_READ | PROT_WRITE ), MAP_SHARED, fd, HW_REGS_BASE);
-	gpioIn=(volatile u32*)(hwreg+LWH2F_OFFSET+GPIOIN);
-	gpioOut=(volatile u32*)(hwreg+LWH2F_OFFSET+GPIOOUT);
+	gpioIn=(volatile u16*)(hwreg+LWH2F_OFFSET+GPIOIN);
+	gpioOut=(volatile u16*)(hwreg+LWH2F_OFFSET+GPIOOUT);
 	*gpioOut=1<<GPIOTCK;
-	ioDelayCycles=calibrateDelay(1000);
+	
+	volatile u16* gpiooe=gpioOut+1;
+	*gpiooe = u16(1<<GPIOTCK)|u16(1<<GPIOTMS)|u16(1<<GPIOTDI);		//enable write for jtag output pins
+	
+	ioDelayCycles=calibrateDelay(halfperiod);
 	
 	
 	svfParser parser;
@@ -660,7 +683,7 @@ int main() {
 		size_t n;
 		if(getline(&line,&n,stdin)<0) break;
 		parser.processLine(line,strlen(line));
-		printf("line %d:\n",parser.lineNum);
+		//printf("line %d:\n",parser.lineNum);
 		svfCommand cmd;
 		while(parser.nextCommand(cmd)) {
 			player.processCommand(cmd);

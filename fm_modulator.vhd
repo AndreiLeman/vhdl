@@ -31,5 +31,5 @@ architecture a of fm_modulator is
 	signal fm_period: unsigned(10 downto 0);
 begin
 	fm_period <= (unsigned(data(9)&data))+to_unsigned(600,11) when rising_edge(clk);
-	fm: slow_clock2 generic map(11) port map(clk=>clk,o=>outp,period=>fm_period);
+	fm: entity slow_clock2 generic map(11) port map(clk=>clk,o=>outp,period=>fm_period);
 end architecture;

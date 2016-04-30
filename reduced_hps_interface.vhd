@@ -31,16 +31,26 @@ entity reducedHPSInterface is
 			HPS_USB_DATA: inout std_logic_vector(7 downto 0);
 			
 			 user_irq: in std_logic_vector(31 downto 1);
+			 user_gpior: in std_logic_vector(15 downto 0);
+			 user_gpiow: out std_logic_vector(15 downto 0);
+			 user_gpiooe: out std_logic_vector(15 downto 0);
 			 --stream2hps
 			 stream2hps_datain: in std_logic_vector(63 downto 0);
 			 stream2hps_clk: in std_logic;
-			 busClk: in std_logic
+			 busClk: in std_logic;
+			 
+			 --freqdetector (narrowband amplitude/phase detector with configurable center frequency)
+			 freqdetector_r: in std_logic_vector(63 downto 0);
+			 freqdetector_w: out std_logic_vector(63 downto 0)
 			);
 end entity;
 architecture a of reducedHPSInterface is
-    component reduced_hps is
+       component reduced_hps is
         port (
             clk_clk                               : in    std_logic                     := 'X';             -- clk
+            clk_mainbus_clk                       : in    std_logic                     := 'X';             -- clk
+            gpio1r_export                         : in    std_logic_vector(15 downto 0) := (others => 'X'); -- export
+            gpio1w_export                         : out   std_logic_vector(31 downto 0);                    -- export
             hps_0_hps_io_hps_io_emac1_inst_TX_CLK : out   std_logic;                                        -- hps_io_emac1_inst_TX_CLK
             hps_0_hps_io_hps_io_emac1_inst_TXD0   : out   std_logic;                                        -- hps_io_emac1_inst_TXD0
             hps_0_hps_io_hps_io_emac1_inst_TXD1   : out   std_logic;                                        -- hps_io_emac1_inst_TXD1
@@ -97,6 +107,7 @@ architecture a of reducedHPSInterface is
             hps_0_hps_io_hps_io_gpio_inst_GPIO53  : inout std_logic                     := 'X';             -- hps_io_gpio_inst_GPIO53
             hps_0_hps_io_hps_io_gpio_inst_GPIO54  : inout std_logic                     := 'X';             -- hps_io_gpio_inst_GPIO54
             hps_0_hps_io_hps_io_gpio_inst_GPIO61  : inout std_logic                     := 'X';             -- hps_io_gpio_inst_GPIO61
+            irq0_irq                              : in    std_logic_vector(31 downto 0) := (others => 'X'); -- irq
             memory_mem_a                          : out   std_logic_vector(14 downto 0);                    -- mem_a
             memory_mem_ba                         : out   std_logic_vector(2 downto 0);                     -- mem_ba
             memory_mem_ck                         : out   std_logic;                                        -- mem_ck
@@ -114,23 +125,31 @@ architecture a of reducedHPSInterface is
             memory_mem_dm                         : out   std_logic_vector(3 downto 0);                     -- mem_dm
             memory_oct_rzqin                      : in    std_logic                     := 'X';             -- oct_rzqin
             reset_reset_n                         : in    std_logic                     := 'X';             -- reset_n
-            stream2hps_0_dataclk_clk              : in    std_logic                     := 'X';             -- clk
-            stream2hps_0_datain_export            : in    std_logic_vector(63 downto 0) := (others => 'X'); -- export
-            irq0_irq                              : in    std_logic_vector(31 downto 0) := (others => 'X'); -- irq
-            stream2hps_0_irq_irq                  : out   std_logic;                                        -- irq
-            clk_mainbus_clk                       : in    std_logic                     := 'X'              -- clk
+            stream2hps2_0_dataclk_clk             : in    std_logic                     := 'X';             -- clk
+            stream2hps2_0_datain_export           : in    std_logic_vector(63 downto 0) := (others => 'X'); -- export
+            stream2hps2_0_irq_irq                 : out   std_logic;                                        -- irq
+            freqdetector_w_export                 : out   std_logic_vector(63 downto 0);                    -- export
+            freqdetector_r_export                 : in    std_logic_vector(63 downto 0) := (others => 'X')  -- export
         );
     end component reduced_hps;
+
 	 
 	signal irq: std_logic_vector(31 downto 0);
 	signal stream2hps_irq: std_logic;
+	constant gpio1len: integer := 16;
+	signal gpio1w: std_logic_vector(gpio1len*2-1 downto 0);
+	signal gpio1r: std_logic_vector(gpio1len-1 downto 0);
 begin
 	
 	irq(0) <= '0';
 	irq(1) <= stream2hps_irq;
 	irq(31 downto 2) <= user_irq(31 downto 2);
 	
-	
+g:	for I in 0 to gpio1len-1 generate
+		user_gpiow(I) <= gpio1w(I);
+		user_gpiooe(I) <= gpio1w(gpio1len+I);
+		gpio1r(I) <= user_gpior(I);
+	end generate;
 	
 	hps: component reduced_hps port map(
 		clk_clk                               => CLOCK_50,			--clk.clk
@@ -220,10 +239,16 @@ begin
 		
 		irq0_irq=>irq,
 		
-		stream2hps_0_dataclk_clk=>stream2hps_clk,
-		stream2hps_0_datain_export=>stream2hps_datain,
-		stream2hps_0_irq_irq=>stream2hps_irq,
+		stream2hps2_0_dataclk_clk=>stream2hps_clk,
+		stream2hps2_0_datain_export=>stream2hps_datain,
+		stream2hps2_0_irq_irq=>stream2hps_irq,
 		
-		clk_mainbus_clk=>busClk
+		clk_mainbus_clk=>busClk,
+		
+		gpio1w_export=>gpio1w,
+		gpio1r_export=>gpio1r,
+		
+		freqdetector_r_export=>freqdetector_r,
+		freqdetector_w_export=>freqdetector_w
 	);
 end architecture;

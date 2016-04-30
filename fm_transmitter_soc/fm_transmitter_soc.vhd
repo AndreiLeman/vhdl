@@ -55,6 +55,10 @@ architecture a of fm_transmitter_soc is
 	signal hpsAudioL,hpsAudioR: signed(15 downto 0);
 	signal useAudioIn: std_logic := '0';	--whether to use the analog audio in instead of the HPS digital audio input
 	signal ainL,ainR,aoutL,aoutR: signed(15 downto 0);
+	
+	--unused
+	signal pio0data: std_logic_vector(31 downto 0);
+	
 	--mono
 	signal ainSummed,hpsAudioSummed: signed(16 downto 0);
 	signal fmAudio: signed(16 downto 0);
@@ -147,6 +151,7 @@ begin
 			HPS_USB_NXT, HPS_DDR3_DM,HPS_ENET_TX_DATA,HPS_DDR3_DQS_N,HPS_DDR3_DQS_P,
 			HPS_SD_DATA, HPS_FLASH_DATA, HPS_ENET_RX_DATA, HPS_DDR3_ADDR, HPS_DDR3_BA,
 			HPS_DDR3_DQ, HPS_GPIO, HPS_USB_DATA,
+			pio0data,pio0data,
 			fb_vga_out, "0"&vga_conf, vga_conf,(31 downto 1=>'0'),
 			aclk,hpsAudioL,hpsAudioR,(others=>'0'),'0');
 end;

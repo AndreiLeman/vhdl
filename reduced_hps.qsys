@@ -21,8 +21,29 @@
    {
       datum _sortIndex
       {
-         value = "4";
+         value = "3";
          type = "int";
+      }
+   }
+   element config_register_freqdetector
+   {
+      datum _sortIndex
+      {
+         value = "7";
+         type = "int";
+      }
+   }
+   element config_register_freqdetector.avalon_slave_0
+   {
+      datum _lockedAddress
+      {
+         value = "1";
+         type = "boolean";
+      }
+      datum baseAddress
+      {
+         value = "32";
+         type = "String";
       }
    }
    element config_register_stream2hps
@@ -86,6 +107,48 @@
          type = "String";
       }
    }
+   element pio_0
+   {
+      datum _sortIndex
+      {
+         value = "5";
+         type = "int";
+      }
+   }
+   element pio_0.s1
+   {
+      datum _lockedAddress
+      {
+         value = "1";
+         type = "boolean";
+      }
+      datum baseAddress
+      {
+         value = "0";
+         type = "String";
+      }
+   }
+   element pio_1
+   {
+      datum _sortIndex
+      {
+         value = "6";
+         type = "int";
+      }
+   }
+   element pio_1.s1
+   {
+      datum _lockedAddress
+      {
+         value = "1";
+         type = "boolean";
+      }
+      datum baseAddress
+      {
+         value = "16";
+         type = "String";
+      }
+   }
    element reduced_hps
    {
       datum _originalDeviceFamily
@@ -94,11 +157,11 @@
          type = "String";
       }
    }
-   element stream2hps_0
+   element stream2hps2_0
    {
       datum _sortIndex
       {
-         value = "3";
+         value = "4";
          type = "int";
       }
    }
@@ -129,23 +192,43 @@
    internal="clk_mainbus.in_clk"
    type="clock"
    dir="end" />
+ <interface
+   name="freqdetector_r"
+   internal="config_register_freqdetector.conduit_in"
+   type="conduit"
+   dir="end" />
+ <interface
+   name="freqdetector_w"
+   internal="config_register_freqdetector.conduit"
+   type="conduit"
+   dir="end" />
+ <interface
+   name="gpio1r"
+   internal="pio_1.external_connection"
+   type="conduit"
+   dir="end" />
+ <interface
+   name="gpio1w"
+   internal="pio_0.external_connection"
+   type="conduit"
+   dir="end" />
  <interface name="hps_0_hps_io" internal="hps_0.hps_io" type="conduit" dir="end" />
  <interface name="irq0" internal="hps_0.f2h_irq0" type="interrupt" dir="start" />
  <interface name="memory" internal="hps_0.memory" type="conduit" dir="end" />
  <interface name="reset" internal="clk_lwbus.clk_in_reset" type="reset" dir="end" />
  <interface
-   name="stream2hps_0_dataclk"
-   internal="stream2hps_0.dataclk"
+   name="stream2hps2_0_dataclk"
+   internal="stream2hps2_0.dataclk"
    type="clock"
    dir="end" />
  <interface
-   name="stream2hps_0_datain"
-   internal="stream2hps_0.datain"
+   name="stream2hps2_0_datain"
+   internal="stream2hps2_0.datain"
    type="conduit"
    dir="end" />
  <interface
-   name="stream2hps_0_irq"
-   internal="stream2hps_0.irq"
+   name="stream2hps2_0_irq"
+   internal="stream2hps2_0.irq"
    type="interrupt"
    dir="end" />
  <module name="clk_lwbus" kind="clock_source" version="15.1" enabled="1">
@@ -162,6 +245,16 @@
   <parameter name="DERIVED_CLOCK_RATE" value="0" />
   <parameter name="EXPLICIT_CLOCK_RATE" value="0" />
   <parameter name="NUM_CLOCK_OUTPUTS" value="1" />
+ </module>
+ <module
+   name="config_register_freqdetector"
+   kind="config_register"
+   version="1.0"
+   enabled="1">
+  <parameter name="addrlen" value="2" />
+  <parameter name="dummy" value="0" />
+  <parameter name="inpWords" value="2" />
+  <parameter name="words" value="2" />
  </module>
  <module
    name="config_register_stream2hps"
@@ -701,11 +794,39 @@
   <parameter name="usb_mp_clk_div" value="0" />
   <parameter name="use_default_mpu_clk" value="true" />
  </module>
- <module name="stream2hps_0" kind="stream2hps" version="1.0" enabled="1" />
+ <module name="pio_0" kind="altera_avalon_pio" version="15.1" enabled="1">
+  <parameter name="bitClearingEdgeCapReg" value="false" />
+  <parameter name="bitModifyingOutReg" value="false" />
+  <parameter name="captureEdge" value="false" />
+  <parameter name="clockRate" value="50000000" />
+  <parameter name="direction" value="Output" />
+  <parameter name="edgeType" value="RISING" />
+  <parameter name="generateIRQ" value="false" />
+  <parameter name="irqType" value="LEVEL" />
+  <parameter name="resetValue" value="0" />
+  <parameter name="simDoTestBenchWiring" value="false" />
+  <parameter name="simDrivenValue" value="0" />
+  <parameter name="width" value="32" />
+ </module>
+ <module name="pio_1" kind="altera_avalon_pio" version="15.1" enabled="1">
+  <parameter name="bitClearingEdgeCapReg" value="false" />
+  <parameter name="bitModifyingOutReg" value="false" />
+  <parameter name="captureEdge" value="false" />
+  <parameter name="clockRate" value="50000000" />
+  <parameter name="direction" value="Input" />
+  <parameter name="edgeType" value="RISING" />
+  <parameter name="generateIRQ" value="false" />
+  <parameter name="irqType" value="LEVEL" />
+  <parameter name="resetValue" value="0" />
+  <parameter name="simDoTestBenchWiring" value="false" />
+  <parameter name="simDrivenValue" value="0" />
+  <parameter name="width" value="16" />
+ </module>
+ <module name="stream2hps2_0" kind="stream2hps2" version="1.0" enabled="1" />
  <connection
    kind="avalon"
    version="15.1"
-   start="stream2hps_0.avalon_master"
+   start="stream2hps2_0.avalon_master"
    end="hps_0.f2h_sdram0_data">
   <parameter name="arbitrationPriority" value="1" />
   <parameter name="baseAddress" value="0x0000" />
@@ -721,6 +842,35 @@
   <parameter name="defaultConnection" value="false" />
  </connection>
  <connection
+   kind="avalon"
+   version="15.1"
+   start="hps_0.h2f_lw_axi_master"
+   end="config_register_freqdetector.avalon_slave_0">
+  <parameter name="arbitrationPriority" value="1" />
+  <parameter name="baseAddress" value="0x0020" />
+  <parameter name="defaultConnection" value="false" />
+ </connection>
+ <connection
+   kind="avalon"
+   version="15.1"
+   start="hps_0.h2f_lw_axi_master"
+   end="pio_1.s1">
+  <parameter name="arbitrationPriority" value="1" />
+  <parameter name="baseAddress" value="0x0010" />
+  <parameter name="defaultConnection" value="false" />
+ </connection>
+ <connection
+   kind="avalon"
+   version="15.1"
+   start="hps_0.h2f_lw_axi_master"
+   end="pio_0.s1">
+  <parameter name="arbitrationPriority" value="1" />
+  <parameter name="baseAddress" value="0x0000" />
+  <parameter name="defaultConnection" value="false" />
+ </connection>
+ <connection kind="clock" version="15.1" start="clk_lwbus.clk" end="pio_0.clk" />
+ <connection kind="clock" version="15.1" start="clk_lwbus.clk" end="pio_1.clk" />
+ <connection
    kind="clock"
    version="15.1"
    start="clk_lwbus.clk"
@@ -729,7 +879,12 @@
    kind="clock"
    version="15.1"
    start="clk_lwbus.clk"
-   end="stream2hps_0.confclk" />
+   end="config_register_freqdetector.clock" />
+ <connection
+   kind="clock"
+   version="15.1"
+   start="clk_lwbus.clk"
+   end="stream2hps2_0.confclk" />
  <connection
    kind="clock"
    version="15.1"
@@ -739,7 +894,7 @@
    kind="clock"
    version="15.1"
    start="clk_mainbus.out_clk"
-   end="stream2hps_0.avalonclk" />
+   end="stream2hps2_0.avalonclk" />
  <connection
    kind="clock"
    version="15.1"
@@ -753,8 +908,8 @@
  <connection
    kind="conduit"
    version="15.1"
-   start="config_register_stream2hps.conduit_in"
-   end="stream2hps_0.info">
+   start="config_register_stream2hps.conduit"
+   end="stream2hps2_0.conf">
   <parameter name="endPort" value="" />
   <parameter name="endPortLSB" value="0" />
   <parameter name="startPort" value="" />
@@ -764,8 +919,8 @@
  <connection
    kind="conduit"
    version="15.1"
-   start="stream2hps_0.conf"
-   end="config_register_stream2hps.conduit">
+   start="stream2hps2_0.info"
+   end="config_register_stream2hps.conduit_in">
   <parameter name="endPort" value="" />
   <parameter name="endPortLSB" value="0" />
   <parameter name="startPort" value="" />
@@ -776,12 +931,19 @@
    kind="reset"
    version="15.1"
    start="hps_0.h2f_reset"
-   end="stream2hps_0.reset" />
+   end="stream2hps2_0.reset" />
+ <connection kind="reset" version="15.1" start="hps_0.h2f_reset" end="pio_1.reset" />
+ <connection kind="reset" version="15.1" start="hps_0.h2f_reset" end="pio_0.reset" />
  <connection
    kind="reset"
    version="15.1"
    start="hps_0.h2f_reset"
    end="config_register_stream2hps.reset_sink" />
+ <connection
+   kind="reset"
+   version="15.1"
+   start="hps_0.h2f_reset"
+   end="config_register_freqdetector.reset_sink" />
  <interconnectRequirement for="$system" name="qsys_mm.clockCrossingAdapter" value="HANDSHAKE" />
  <interconnectRequirement for="$system" name="qsys_mm.maxAdditionalLatency" value="1" />
 </system>

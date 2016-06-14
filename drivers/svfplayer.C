@@ -10,6 +10,9 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <termios.h>
+#include <assert.h>
+#include <poll.h>
 
 using namespace std;
 
@@ -268,7 +271,7 @@ struct svfParser {
 		}
 		_skipSpaces();
 		if(bufI<(int)buf.length()) {
-			printf("%d %d %d\n",bufI,(int)buf.length(),(int)buf[bufI]);
+			fprintf(stderr,"%d %d %d\n",bufI,(int)buf.length(),(int)buf[bufI]);
 			_parseError("garbage after command: "+buf.substr(bufI));
 		}
 		buf.clear();
@@ -537,11 +540,14 @@ struct svfPlayer {
 };
 
 
+int lineNum=0;
+
 //##########################################################################################
 /***************** hardware accessing functions *****************/
 //##########################################################################################
 
 
+//==============soc
 #define H2F_BASE (0xC0000000) // axi_master
 #define H2F_SPAN (0x40000000) // Bridge span
 #define HW_REGS_BASE ( 0xFC000000 )     //misc. registers
@@ -564,6 +570,26 @@ volatile u16* gpioOut;
 #define GPIOTDO 13
 u64 ioDelayCycles=0;
 
+//==============usb
+int ttydevice=-1;
+int bitrepeat=1;
+static const u8 usbtck=1<<0;
+static const u8 usbtms=1<<1;
+static const u8 usbtdi=1<<2;
+static const u8 usbtdo=1<<3;
+static const u8 usbsmp=1<<7;
+
+int readAll(int fd,void* buf, int len) {
+	u8* buf1=(u8*)buf;
+	int off=0;
+	int r;
+	while(off<len) {
+		if((r=read(fd,buf1+off,len-off))<=0) break;
+		off+=r;
+	}
+	return off;
+}
+
 void doDelay(u64 cycles) {
 	for(u64 i=0;i<cycles;i++) asm("");
 }
@@ -574,16 +600,18 @@ u64 tsToNs(const struct timespec& ts) {
 u64 measureTime(u64 cycles) {
 	struct timespec t,t2;
 	clock_gettime(CLOCK_MONOTONIC,&t);
-	doDelay(cycles); doDelay(cycles); doDelay(cycles); doDelay(cycles);
-	doDelay(cycles); doDelay(cycles); doDelay(cycles); doDelay(cycles);
-	doDelay(cycles); doDelay(cycles); doDelay(cycles); doDelay(cycles);
-	doDelay(cycles); doDelay(cycles); doDelay(cycles); doDelay(cycles);
-	doDelay(cycles); doDelay(cycles); doDelay(cycles); doDelay(cycles);
-	doDelay(cycles); doDelay(cycles); doDelay(cycles); doDelay(cycles);
-	doDelay(cycles); doDelay(cycles); doDelay(cycles); doDelay(cycles);
-	doDelay(cycles); doDelay(cycles); doDelay(cycles); doDelay(cycles);
+	for(int i=0;i<50;i++) {
+		doDelay(cycles); doDelay(cycles); doDelay(cycles); doDelay(cycles);
+		doDelay(cycles); doDelay(cycles); doDelay(cycles); doDelay(cycles);
+		doDelay(cycles); doDelay(cycles); doDelay(cycles); doDelay(cycles);
+		doDelay(cycles); doDelay(cycles); doDelay(cycles); doDelay(cycles);
+		doDelay(cycles); doDelay(cycles); doDelay(cycles); doDelay(cycles);
+		doDelay(cycles); doDelay(cycles); doDelay(cycles); doDelay(cycles);
+		doDelay(cycles); doDelay(cycles); doDelay(cycles); doDelay(cycles);
+		doDelay(cycles); doDelay(cycles); doDelay(cycles); doDelay(cycles);
+	}
 	clock_gettime(CLOCK_MONOTONIC,&t2);
-	return (tsToNs(t2)-tsToNs(t))/32;
+	return (tsToNs(t2)-tsToNs(t))/(32*50);
 }
 u64 measureTime2(u64 cycles) {
 	u64 min=measureTime(cycles);
@@ -619,7 +647,7 @@ u64 calibrateDelay(u64 desiredDelay=1000) {
 		(unsigned long long)measureTime(max),(unsigned long long)max);
 	return max;
 }
-void executeCommands(const string& buf, int lineNum) {
+void executeCommands_soc(const string& buf) {
 	//struct timespec ts;
 	//ts.tv_sec=0;
 	//ts.tv_nsec=1000;
@@ -649,27 +677,163 @@ void executeCommands(const string& buf, int lineNum) {
 		}
 	}
 }
+
+void writebuffer_usb(const u8* buf, int len) {
+	{
+		u8 outbuf[len*2*bitrepeat];
+		for(int i=0;i<len;i++) {
+			u8 cmd=(u8)buf[i];
+			bool tms=cmd&(1);
+			bool tdi=cmd&(1<<1);
+			bool tdo=cmd&(1<<2);
+			bool tdiEnable=cmd&(1<<3);
+			bool tdoEnable=cmd&(1<<4);
+			
+		
+			//put data on the line and set tck low
+			u8 out1=(tdi?usbtdi:0)|(tms?usbtms:0);
+			//tck high
+			u8 out2=out1|usbtck;
+			
+			for(int r=0;r<bitrepeat;r++) {
+				outbuf[i*2*bitrepeat+r]=out1;
+				outbuf[(i*2+1)*bitrepeat+r]=out2;
+			}
+			outbuf[i*2*bitrepeat+bitrepeat-1]=out1|usbsmp;
+		}
+		assert(write(ttydevice,outbuf,len*2*bitrepeat)==len*2*bitrepeat);
+	}
+	u8 inbuf[len];
+	assert(readAll(ttydevice,inbuf,len)==len);
+	for(int i=0;i<len;i++) {
+		u8 cmd=(u8)buf[i];
+		bool tms=cmd&(1);
+		bool tdi=cmd&(1<<1);
+		bool tdo=cmd&(1<<2);
+		bool tdiEnable=cmd&(1<<3);
+		bool tdoEnable=cmd&(1<<4);
+		
+		bool receivedTms=(inbuf[i]&usbtms);
+		bool receivedTdi=(inbuf[i]&usbtdi);
+		bool receivedTdo=(inbuf[i]&usbtdo);
+		
+		//fprintf(stderr,"tdi=%d%s ",(int)tdi,tdiEnable?"":"?");
+		//fprintf(stderr,"tms=%d ",(int)tms);
+		//fprintf(stderr,"tdo=%d%s ",(int)tdo,tdoEnable?"":"?");
+		
+		//fprintf(stderr,"\n");
+		//fprintf(stderr,"%d\n",inbuf[i]);
+		
+		//assert(tms==receivedTms);
+		//assert(tdi==receivedTdi);
+		
+		if(tdoEnable && tdo!=receivedTdo) {
+			fprintf(stderr,"line %d: error: tdo should be %d, but got %d\n",lineNum,(int)tdo,(int)receivedTdo);
+			
+			//_exit(1);
+		}
+	}
+}
+void executeCommands_usb(const string& buf) {
+	int maxbuf=4096;
+	for(int i=0;i<(int)buf.length();i+=maxbuf) {
+		int len=(int)buf.length()-i;
+		if(len>maxbuf) len=maxbuf;
+		writebuffer_usb((u8*)buf.data()+i,len);
+	}
+}
+
+void drainfd(int fd) {
+	pollfd pfd;
+	pfd.fd = fd;
+	pfd.events = POLLIN;
+	while(poll(&pfd,1,100)>0) {
+		if(!(pfd.revents&POLLIN)) continue;
+		char buf[4096];
+		read(fd,buf,sizeof(buf));
+	}
+}
+
+
 int main(int argc, char** argv) {
 	if(argc<2) {
-		printf("usage: %s CLKPERIOD_NS\n",argv[0]);
+	print_usage:
+		fprintf(stderr,"usage: %s (-s CLKPERIOD_NS)|(-u /dev/ttyXXX BITREPEAT)\n-s: SoC mode\n-u: usb mode\n",argv[0]);
 		return 1;
 	}
-	int halfperiod=atoi(argv[1])/2;
-	
-	int fd;
-	if((fd = open("/dev/mem", O_RDWR | O_SYNC)) < 0) {
-		printf( "ERROR: could not open \"/dev/mem\"...\n" ); return 1;
+	if(argv[1][0]!='-') goto print_usage;
+	switch(argv[1][1]) {
+		case 's':
+		{
+			if(argc<3) goto print_usage;
+			int halfperiod=atoi(argv[2])/2;
+			int fd;
+			if((fd = open("/dev/mem", O_RDWR | O_SYNC)) < 0) {
+				fprintf(stderr, "ERROR: could not open \"/dev/mem\"...\n" ); return 1;
+			}
+			//u8* h2f = (u8*)mmap( NULL, H2F_SPAN, ( PROT_READ | PROT_WRITE ), MAP_SHARED, fd, H2F_BASE);
+			u8* hwreg = (u8*)mmap( NULL, HW_REGS_SPAN, ( PROT_READ | PROT_WRITE ), MAP_SHARED, fd, HW_REGS_BASE);
+			gpioIn=(volatile u16*)(hwreg+LWH2F_OFFSET+GPIOIN);
+			gpioOut=(volatile u16*)(hwreg+LWH2F_OFFSET+GPIOOUT);
+			*gpioOut=1<<GPIOTCK;
+			
+			volatile u16* gpiooe=gpioOut+1;
+			*gpiooe = u16(1<<GPIOTCK)|u16(1<<GPIOTMS)|u16(1<<GPIOTDI);		//enable write for jtag output pins
+			
+			ioDelayCycles=calibrateDelay(halfperiod);
+			break;
+		}
+		case 'u':
+		{
+			if(argc<4) goto print_usage;
+			bitrepeat=atoi(argv[3]);
+			int fd;
+			if((fd = open(argv[2], O_RDWR)) < 0) {
+				perror("open");
+				fprintf(stderr, "ERROR: could not open %s\n", argv[2]);
+				return 1;
+			}
+			/* Set TTY mode. */
+			struct termios tc;
+			if (tcgetattr(fd, &tc) < 0) {
+				perror("tcgetattr");
+				exit(1);
+			}
+			tc.c_iflag &= ~(INLCR|IGNCR|ICRNL|IGNBRK|IUCLC|INPCK|ISTRIP|IXON|IXOFF|IXANY);
+			tc.c_oflag &= ~OPOST;
+			tc.c_cflag &= ~(CSIZE|CSTOPB|PARENB|PARODD|CRTSCTS);
+			tc.c_cflag |= CS8 | CREAD | CLOCAL;
+			tc.c_lflag &= ~(ICANON|ECHO|ECHOE|ECHOK|ECHONL|ISIG|IEXTEN);
+			tc.c_cc[VMIN] = 1;
+			tc.c_cc[VTIME] = 0;
+			if (tcsetattr(fd, TCSANOW, &tc) < 0) {
+				perror("tcsetattr");
+				exit(1);
+			}
+			ttydevice=fd;
+			
+			u8 tmp=usbtck;
+			write(fd,&tmp,1);
+			
+			//drain buffer
+			drainfd(fd);
+			
+			tmp=usbsmp;
+			write(fd,&tmp,1);
+			assert(read(fd,&tmp,1)==1);
+			assert((tmp&usbtck)==0);
+			tmp=usbtck|usbsmp;
+			write(fd,&tmp,1);
+			assert(read(fd,&tmp,1)==1);
+			assert((tmp&usbtck)!=0);
+			
+			break;
+		}
+		default:
+			goto print_usage;
 	}
-	//u8* h2f = (u8*)mmap( NULL, H2F_SPAN, ( PROT_READ | PROT_WRITE ), MAP_SHARED, fd, H2F_BASE);
-	u8* hwreg = (u8*)mmap( NULL, HW_REGS_SPAN, ( PROT_READ | PROT_WRITE ), MAP_SHARED, fd, HW_REGS_BASE);
-	gpioIn=(volatile u16*)(hwreg+LWH2F_OFFSET+GPIOIN);
-	gpioOut=(volatile u16*)(hwreg+LWH2F_OFFSET+GPIOOUT);
-	*gpioOut=1<<GPIOTCK;
 	
-	volatile u16* gpiooe=gpioOut+1;
-	*gpiooe = u16(1<<GPIOTCK)|u16(1<<GPIOTMS)|u16(1<<GPIOTDI);		//enable write for jtag output pins
 	
-	ioDelayCycles=calibrateDelay(halfperiod);
 	
 	
 	svfParser parser;
@@ -689,8 +853,11 @@ int main(int argc, char** argv) {
 			player.processCommand(cmd);
 			cmds++;
 		}
+		lineNum=parser.lineNum;
 		
-		executeCommands(player.outBuffer,parser.lineNum);
+		if(argv[1][1]=='s')
+			executeCommands_soc(player.outBuffer);
+		else executeCommands_usb(player.outBuffer);
 		player.outBuffer.clear();
 		
 		free(line);

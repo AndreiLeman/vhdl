@@ -124,7 +124,7 @@ int main() {
 	pfd[0].events = POLLIN;
 	pfd[1].fd=irqfd;
 	pfd[1].events=POLLIN;
-	while(poll((pollfd*)&pfd, 2, -1)>0) {
+	while(poll(pfd, 2, -1)>0) {
 		int shouldClear=0;
 		if(pfd[1].revents!=0) {	//one or more interrupts were received
 			int newirqcount=_readIrq(irqfd);
@@ -176,7 +176,10 @@ int main() {
 				fprintf(stderr,"buffer underrun caused by slow execution\n");
 		} else if(shouldClear) {
 			//data wasn't available in time; clear buffer to avoid playing garbage
-			memset((void*)(sram+wpos),0,AUDIO_SRAM_SIZE/2);
+			//memset((void*)(sram+wpos),0,AUDIO_SRAM_SIZE/2);
+			for(int i=wpos;i<wpos+(AUDIO_SRAM_SIZE/2);i++) {
+				sram[i]=0;
+			}
 			fprintf(stderr,"buffer underrun\n");
 		}
 	}

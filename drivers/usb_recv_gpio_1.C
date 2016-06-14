@@ -23,37 +23,13 @@ void writeBits(u64 bits, int bitcount) {
 	printf("%s %lu\n",s.c_str(),bits);
 }
 int main() {
-	int bitcount=14;
 	u8 buf[bufsize];
 	int br;
-	u64 bits=0;
-	int j=0;
-	int x=0;
-	
-	u8 msb=1<<7;
-	u8 mask=msb-1;
-	
-	bool triggered=false;
-	
+	int fuck=0;
 	while((br=read(0,buf,sizeof(buf)))>0) {
 		for(int i=0;i<br;i++) {
-			if(buf[i]&msb) {
-				//fprintf(stderr,"fuck %u\n");
-				bits|=u64(buf[i]&mask) << j;
-				j+=7;
-			} else {
-				if(!triggered && x>10000) {
-					if((!(bits&(1<<13)) || !(bits&(1<<12)))){
-						triggered=true;
-						fprintf(stderr,"triggered\n");
-					}
-				}
-				if(triggered)
-					writeBits(bits,bitcount);
-				bits=u64(buf[i]&mask);
-				j=7;
-				x++;
-			}
+			if(fuck>50000) writeBits(buf[i],8);
+			fuck++;
 		}
 	}
 }

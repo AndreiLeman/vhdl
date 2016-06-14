@@ -7,6 +7,8 @@ use work.volumeControl2;
 use work.sineGenerator;
 use work.mainHPSInterface;
 use work.hexdisplay;
+use work.slow_clock;
+use work.dsssCode1;
 
 entity fm_transmitter_soc is
 	port(CLOCK_50: in std_logic;
@@ -46,7 +48,7 @@ entity fm_transmitter_soc is
 			HPS_USB_DATA: inout std_logic_vector(7 downto 0);
 			
 			HEX0,HEX1,HEX2,HEX3,HEX4,HEX5: out std_logic_vector(6 downto 0);
-			GPIO_0,GPIO_1: inout std_logic_vector(7 downto 0));
+			GPIO_0,GPIO_1: inout std_logic_vector(35 downto 0));
 end entity;
 architecture a of fm_transmitter_soc is
 	signal aclk,audioCClk,dacClk: std_logic;
@@ -65,15 +67,21 @@ architecture a of fm_transmitter_soc is
 	signal fmAudioScaled: signed(23 downto 0);
 	
 	--fm modulator
+	signal fm_enable: std_logic;
 	signal CLOCK_300: std_logic;
 	signal freq_int,freq_int_d0,freq_int_d1,freq_int_d2: unsigned(6 downto 0);
 	signal freq_f: unsigned(3 downto 0);
 	signal freq_int1,freq_f1,freq_sum: unsigned(31 downto 0);
 	signal base_freq: unsigned(27 downto 0);
 	signal fm_freq: unsigned(27 downto 0);
-	signal fm1: signed(8 downto 0);
+	signal fm1,fm1Next,fm1_src: signed(8 downto 0);
 	signal fm2,fm2i: unsigned(8 downto 0);
 	signal enc_clk: std_logic;
+	
+	--dsss (testing; experimental)
+	signal dsssClk: std_logic;
+	signal dsssAddr: unsigned(9 downto 0);
+	signal dsssStream,dsssStream1: std_logic;
 	
 	--UI
 	signal uiClk: std_logic;
@@ -114,7 +122,7 @@ begin
 	
 	--mono
 	ainSummed <= (ainL(15)&ainL)+ainR when rising_edge(aclk);
-	hpsAudioSummed <= (hpsAudioL(15)&hpsAudioL)+hpsAudioR when rising_edge(aclk);
+	hpsAudioSummed <= (hpsAudioL(15)&hpsAudioL)+(hpsAudioR(15)&hpsAudioR) when rising_edge(aclk);
 	fmAudio <= ainSummed when useAudioIn='1' else hpsAudioSummed;
 	vc: volumeControl2 generic map(17,24) port map(aclk,fmAudio,fmAudioScaled,SW(2 downto 0));
 	
@@ -127,9 +135,18 @@ begin
 	base_freq <= freq_sum(31 downto 4);
 	fm_freq <= base_freq+((5 downto 0=>fmAudioScaled(23))&unsigned(fmAudioScaled(23 downto 2)))
 		when rising_edge(enc_clk);
-	sg: sineGenerator port map(CLOCK_300,fm_freq,fm1);
+	sg: sineGenerator port map(CLOCK_300,fm_freq,fm1_src);
+	
+	fm1Next <= fm1_src when fm_enable='1' else "000000000";
+	fm1 <= fm1Next when rising_edge(CLOCK_300);
 	fm2 <= unsigned(fm1)+"100000000" when rising_edge(CLOCK_300);
 	fm2i <= unsigned(-fm1)+"100000000" when rising_edge(CLOCK_300);
+	
+	--dsss modulator
+	dsssc: entity slow_clock generic map(300,150) port map(CLOCK_300,dsssClk);	--1MHz
+	dsssAddr <= dsssAddr+1 when rising_edge(dsssClk);
+	dsssRom: entity dsssCode1 port map(dsssClk,dsssAddr,dsssStream);
+	dsssStream1 <= dsssStream when rising_edge(CLOCK_300);
 	
 	--signal outputs
 	VGA_SYNC_N <= '0';
@@ -138,7 +155,7 @@ begin
 	--VGA_G <= "00000000";
 	VGA_G <= fm2(8 downto 1) when rising_edge(CLOCK_300);
 	VGA_B <= fm2(8 downto 1) when rising_edge(CLOCK_300);
-	VGA_CLK <= not CLOCK_300;
+	VGA_CLK <= CLOCK_300;
 	
 	hps: mainHPSInterface port map(CLOCK_50, HPS_CONV_USB_N,HPS_ENET_INT_N,HPS_ENET_MDIO,
 			HPS_GSENSOR_INT, HPS_I2C1_SCLK, HPS_I2C1_SDAT, HPS_I2C2_SCLK, HPS_I2C2_SDAT, 
@@ -154,4 +171,7 @@ begin
 			pio0data,pio0data,
 			fb_vga_out, "0"&vga_conf, vga_conf,(31 downto 1=>'0'),
 			aclk,hpsAudioL,hpsAudioR,(others=>'0'),'0');
+	--hps I/Os
+	fm_enable <= dsssStream1 and not useAudioIn;
+	GPIO_0(31 downto 0) <= pio0data;
 end;

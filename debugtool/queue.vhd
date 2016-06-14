@@ -15,9 +15,15 @@ entity debugtool_queue is
 				-- real depth is 2^depth_order
 				depth_order: integer := 9);
 	port(clk,readnext,writeen: in std_logic;
-			readvalid,writefull: out std_logic;
+			readvalid,writeready: out std_logic;
 			wdata: in std_logic_vector(width-1 downto 0);
 			rdata: out std_logic_vector(width-1 downto 0);
+			
+			-- how much space is available in the queue, in words
+			writeroom: out unsigned(depth_order-1 downto 0) := (others=>'X');
+			-- how many words is left to be read
+			readleft: out unsigned(depth_order-1 downto 0) := (others=>'X');
+			
 			writeprev: in std_logic := '0');
 end entity;
 architecture a of debugtool_queue is
@@ -47,6 +53,8 @@ begin
 	--queue logic
 	full <= '1' when rpos=wpos+1 else '0';
 	empty <= '1' when rpos=wpos else '0';
+	writeroom <= rpos-wpos-1 when rising_edge(clk);
+	readleft <= wpos-rpos when rising_edge(clk);
 	doRead <= readnext and not empty;
 	doWrite <= writeen and not full;
 	
@@ -63,5 +71,5 @@ begin
 	rdata <= ram1q;
 	
 	readvalid <= not empty;
-	writefull <= full;
+	writeready <= not full;
 end architecture;

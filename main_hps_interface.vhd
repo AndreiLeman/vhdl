@@ -155,8 +155,8 @@ architecture a of mainHPSInterface is
 	signal aclk1: std_logic;
 	signal memdata: std_logic_vector(31 downto 0);
 begin
-	audio_mem_clk <= not audio_mem_clk when falling_edge(aclk);
-	mem_raddr <= mem_raddr+1 when rising_edge(audio_mem_clk);
+	audio_mem_clk <= not audio_mem_clk when rising_edge(aclk);
+	mem_raddr <= mem_raddr+1 when audio_mem_clk='1' and rising_edge(aclk);
 	memdata <= mem_q(31 downto 0) when audio_mem_clk='1' and rising_edge(aclk) 
 		else mem_q(63 downto 32) when rising_edge(aclk);
 	adataL <= signed(memdata(15 downto 0));
@@ -266,7 +266,7 @@ begin
 		audio_mem1_write=>'0',
 		audio_mem1_readdata=>mem_q,
 		audio_mem1_byteenable=>"11111111",
-		audio_mem1c_clk=>audio_mem_clk,
+		audio_mem1c_clk=>aclk,
 		
 		irq0_irq=>irq,
 		audio_regs_export=>audio_regs,

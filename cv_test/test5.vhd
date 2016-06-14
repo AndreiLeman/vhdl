@@ -41,7 +41,7 @@ architecture a of test5 is
 	signal display: unsigned(31 downto 0);
 begin
 	--pll: simple_altera_pll generic map("50 MHz","200 MHz") port map(CLOCK_50,CLOCK_200);
-	pll2: simple_altera_pll generic map("50 MHz","200 MHz") port map(CLOCK_50,dacClk);
+	pll2: simple_altera_pll generic map("50 MHz","300 MHz") port map(CLOCK_50,dacClk);
 	--pll3: simple_altera_pll generic map("50 MHz","300 MHz") port map(CLOCK_50,CLOCK_300);
 	sclk1: slow_clock generic map(10000000,5000000) port map(CLOCK_50,CLOCK_5Hz);
 	audio1: AudioSubSystemStereo port map(CLOCK_50=>CLOCK_50, AudMclk=>AUD_XCK,
@@ -55,7 +55,8 @@ begin
 	--dsm: deltaSigmaModulator port map(dacClk,ain_u&(14 downto 0=>'0'),ain_m);
 	ain_scaled_1 <= ain_scaled when rising_edge(aclk);
 	dsm: deltaSigmaModulator3 port map(dacClk,ain_scaled_1&(15 downto 0=>'0'),ain_m);
-	dsm4: deltaSigmaModulator4 port map(dacClk,ain_scaled_1&(15 downto 0=>'0'),ain_m4,signed("0000"&SW(5 downto 3)&"1"&(23 downto 0=>'0')));
+	--dsm4: deltaSigmaModulator4 port map(dacClk,ain_scaled_1&(15 downto 0=>'0'),ain_m4,signed("0000"&SW(5 downto 3)&"1"&(23 downto 0=>'0')));
+	ain_m4 <= ain_m;
 	GPIO_1(0) <= ain_m;
 	GPIO_1(1) <= not ain_m;
 	GPIO_1(2) <= ain_m;

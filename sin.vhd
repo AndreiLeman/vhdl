@@ -86,7 +86,7 @@ architecture a of sin is
 begin
 	lut_addr <= t(lutAddrBits-1 downto 0) when t(lutAddrBits)='0'
 		else not t(lutAddrBits-1 downto 0);
-	rom: sin_rom port map(lut_addr,clk,lut_q);
+	rom: entity sin_rom port map(lut_addr,clk,lut_q);
 	lut_q1 <= lut_q when rising_edge(clk);
 	invert1 <= t(lutAddrBits+1) when rising_edge(clk);
 	invert2 <= invert1 when rising_edge(clk);

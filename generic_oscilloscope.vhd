@@ -52,7 +52,7 @@ architecture a of generic_oscilloscope is
 	--p2 is the position that corresponds to the current ram_q datapoint
 	--because the ram has 2 clock cycles of delay
 begin
-	cnt: counter_d generic map(N=>20) port map(clk=>dataclk,outp=>cntval,max=>samples_per_px-1);
+	cnt: entity counter_d generic map(N=>20) port map(clk=>dataclk,outp=>cntval,max=>samples_per_px-1);
 	nextpixel <= '1' when cntval=0 else '0';
 	nextpixel1 <= nextpixel when rising_edge(dataclk);
 	--nextpixel2 <= nextpixel1 when falling_edge(dataclk);
@@ -76,13 +76,13 @@ begin
 	ram_d <= std_logic_vector(cur_max) & std_logic_vector(cur_min);
 	wr_addr <= wr_addr+1 when stop='0' and nextpixel1='1' and (not (wr_addr=raddr_base-1))
 		and rising_edge(dataclk);
-	mem: osc_ram port map(wrclock=>dataclk,wraddress=>std_logic_vector(wr_addr),
+	mem: entity osc_ram port map(wrclock=>dataclk,wraddress=>std_logic_vector(wr_addr),
 		data=>std_logic_vector(ram_d),wren=>'1',
 		rdaddress=>std_logic_vector(rd_addr),rdclock=>videoclk,q=>ram_q);
 	
 	do_sample_waddr1 <= '1' when p(1)=H-1 and p(0)=W-2 else '0';
 	do_sample_waddr <= do_sample_waddr1 when rising_edge(videoclk);
-	raddr_base <= wr_addr-W+1 when rising_edge(do_sample_waddr);
+	raddr_base <= wr_addr-W+1 when do_sample_waddr='1' and rising_edge(videoclk);
 	--addr input of ram is already registered
 	rd_addr <= p(0)+raddr_base;-- when rising_edge(clk);
 	

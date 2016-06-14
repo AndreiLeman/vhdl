@@ -25,13 +25,14 @@ entity ulpi_serial is
 		txcork: in std_logic := '0';
 		reset: in std_logic := '0';
 		highspeed,suspend,online: out std_logic := 'X';
-		LED: out std_logic := 'X'
+		LED: out std_logic := 'X';
+		txroom: out unsigned(13 downto 0)
 	);
 end ulpi_serial;
 
 architecture a of ulpi_serial is
 	constant RXBUFSIZE_BITS : integer := 12;
-	constant TXBUFSIZE_BITS : integer := 10;
+	constant TXBUFSIZE_BITS : integer := 14;
 	signal ulpi_data_in, ulpi_data_out: std_logic_vector(7 downto 0);
 	signal PHY_DATABUS16_8 : std_logic;
 	signal PHY_RESET :       std_logic;
@@ -50,6 +51,7 @@ architecture a of ulpi_serial is
 	
 	signal usb_suspend,usb_online,usb_highspeed: std_logic;
 	signal clkcnt : unsigned(24 downto 0);
+	signal usb_txroom: std_logic_vector(TXBUFSIZE_BITS-1 downto 0);
 begin
 	adaptor: entity ulpi_port port map(ulpi_data_in,ulpi_data_out,ulpi_dir,
 		ulpi_nxt,ulpi_stp,ulpi_reset,ulpi_clk60,
@@ -83,7 +85,7 @@ begin
 		TXVAL           => txval,
 		TXDAT           => txdat,
 		TXRDY           => txrdy,
-		TXROOM          => open,
+		TXROOM          => usb_txroom,
 		TXCORK          => txcork,
 		PHY_DATAIN      => PHY_DATAIN,
 		PHY_DATAOUT     => PHY_DATAOUT,
@@ -101,6 +103,7 @@ begin
 	highspeed <= usb_highspeed;
 	suspend <= usb_suspend;
 	online <= usb_online;
+	txroom <= unsigned(usb_txroom);
 	
 	clkcnt <= clkcnt + 1 when rising_edge(ulpi_clk60);
 	-- Show USB status on LED

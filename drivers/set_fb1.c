@@ -15,6 +15,9 @@
 #define HW_REGS_BASE ( 0xFC000000 )     //misc. registers
 #define HW_REGS_SPAN ( 0x04000000 )
 
+//registers; relative to HW_REGS_BASE
+#define REG_sdr 0x3c20000
+#define REG_sdr_mppriority 0x50AC	// relative to REG_sdr
 
 #define LWH2F_OFFSET 52428800
 #define FB_CONFIG_OFFSET 0x20
@@ -24,34 +27,41 @@ typedef unsigned int ui;
 typedef uint8_t u8;
 
 int main(int argc,char** argv) {
-        if(argc<2) {
-                printf("usage: %s ADDR\n",argv[0]);
-                return 1;
-        }
-        int fd;
-        if((fd = open("/dev/mem", O_RDWR | O_SYNC)) < 0) {
-                printf( "ERROR: could not open \"/dev/mem\"...\n" ); return 1;
-        }
-        //u8* h2f = (u8*)mmap( NULL, H2F_SPAN, ( PROT_READ | PROT_WRITE ), MAP_SHARED, fd, H2F_BASE);
-        u8* hwreg = (u8*)mmap( NULL, HW_REGS_SPAN, ( PROT_READ | PROT_WRITE ), MAP_SHARED, fd, HW_REGS_BASE);
-        u8* tmp=hwreg+LWH2F_OFFSET+FB_CONFIG_OFFSET;
-        volatile ui* tmp1=(volatile ui*)tmp;
+	if(argc<2) {
+		printf("usage: %s ADDR\n",argv[0]);
+		return 1;
+	}
+	int fd;
+	if((fd = open("/dev/mem", O_RDWR | O_SYNC)) < 0) {
+		printf( "ERROR: could not open \"/dev/mem\"...\n" ); return 1;
+	}
+	//u8* h2f = (u8*)mmap( NULL, H2F_SPAN, ( PROT_READ | PROT_WRITE ), MAP_SHARED, fd, H2F_BASE);
+	u8* hwreg = (u8*)mmap( NULL, HW_REGS_SPAN, ( PROT_READ | PROT_WRITE ), MAP_SHARED, fd, HW_REGS_BASE);
+	u8* tmp=hwreg+LWH2F_OFFSET+FB_CONFIG_OFFSET;
+	volatile ui* tmp1=(volatile ui*)tmp;
 
-        int w,h;
-        unsigned long long hf,hb,hd,vf,vb,vd;
+	int w,h;
+	unsigned long long hf,hb,hd,vf,vb,vd;
 
-        w=1280; h=1024; vd=3; vb=38; vf=1; hd=144; hb=248; hf=16;
-        //w=1024; h=768; vd=6; vb=29; vf=3; hd=136; hb=160; hf=24;
+	//w=1280; h=1024; vd=3; vb=38; vf=1; hd=144; hb=248; hf=16;
+	//w=1024; h=768; vd=6; vb=29; vf=3; hd=136; hb=160; hf=24;
+	
+	w=1024; h=768; vd=3; vb=23; vf=1; hd=104; hb=160; hf=56;
 
-        //fb address
-        tmp1[0]=strtol(argv[1],NULL,16);
-        //resolution
-        tmp1[1]=w+(h<<16);
-        //timings
-        //uint64_t asdfg=(1LL<<60) | (3LL<<50) | (208LL<<40) | (1LL<<30) | (34LL<<20) | (120LL<<10) | 328LL;
-        uint64_t asdfg=(1LL<<60) | (vd<<50) | (vb<<40) | (vf<<30) | (hd<<20) | (hb<<10) | hf;
-        tmp1[2]=asdfg&0xFFFFFFFF;
-        tmp1[3]=asdfg>>32;
+	//fb address
+	tmp1[0]=strtol(argv[1],NULL,16);
+	//resolution
+	tmp1[1]=w+(h<<16);
+	//timings
+	//uint64_t asdfg=(1LL<<60) | (3LL<<50) | (208LL<<40) | (1LL<<30) | (34LL<<20) | (120LL<<10) | 328LL;
+	uint64_t asdfg=(1LL<<60) | (vd<<50) | (vb<<40) | (vf<<30) | (hd<<20) | (hb<<10) | hf;
+	tmp1[2]=asdfg&0xFFFFFFFF;
+	tmp1[3]=asdfg>>32;
 
-        return 0;
+
+	//set sdram priority
+	volatile ui* mppriority=(volatile ui*)(hwreg+REG_sdr+REG_sdr_mppriority);
+	*mppriority=7;
+
+	return 0;
 }

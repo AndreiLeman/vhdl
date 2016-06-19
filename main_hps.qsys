@@ -46,6 +46,27 @@
          type = "String";
       }
    }
+   element config_register_1
+   {
+      datum _sortIndex
+      {
+         value = "13";
+         type = "int";
+      }
+   }
+   element config_register_1.avalon_slave_0
+   {
+      datum _lockedAddress
+      {
+         value = "1";
+         type = "boolean";
+      }
+      datum baseAddress
+      {
+         value = "80";
+         type = "String";
+      }
+   }
    element config_register_stream2hps
    {
       datum _sortIndex
@@ -65,6 +86,14 @@
       {
          value = "64";
          type = "String";
+      }
+   }
+   element generic_fb_0
+   {
+      datum _sortIndex
+      {
+         value = "12";
+         type = "int";
       }
    }
    element hps1
@@ -105,6 +134,14 @@
       {
          value = "1";
          type = "boolean";
+      }
+   }
+   element main_hps
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
       }
    }
    element main_hps
@@ -261,6 +298,13 @@
    dir="end" />
  <interface name="clk" internal="clk_0.clk_in" type="clock" dir="end" />
  <interface name="fb_vga" internal="vga_fb_0.vga" type="conduit" dir="end" />
+ <interface name="gfb" internal="generic_fb_0.conf" type="conduit" dir="end" />
+ <interface
+   name="gfbc"
+   internal="config_register_1.conduit"
+   type="conduit"
+   dir="end" />
+ <interface name="gfbv" internal="generic_fb_0.video" type="conduit" dir="end" />
  <interface name="hps_0_hps_io" internal="hps_0.hps_io" type="conduit" dir="end" />
  <interface name="irq0" internal="hps_0.f2h_irq0" type="interrupt" dir="start" />
  <interface name="memory" internal="hps_0.memory" type="conduit" dir="end" />
@@ -289,6 +333,11 @@
    name="stream2hps_0_irq"
    internal="stream2hps_0.irq"
    type="interrupt"
+   dir="end" />
+ <interface
+   name="unused1"
+   internal="config_register_1.conduit_in"
+   type="conduit"
    dir="end" />
  <interface name="vga_fb_conf" internal="vga_fb_0.conf" type="conduit" dir="end" />
  <interface
@@ -322,6 +371,16 @@
   <parameter name="words" value="4" />
  </module>
  <module
+   name="config_register_1"
+   kind="config_register"
+   version="1.0"
+   enabled="1">
+  <parameter name="addrlen" value="1" />
+  <parameter name="dummy" value="1" />
+  <parameter name="inpWords" value="0" />
+  <parameter name="words" value="2" />
+ </module>
+ <module
    name="config_register_stream2hps"
    kind="config_register"
    version="1.0"
@@ -330,6 +389,9 @@
   <parameter name="dummy" value="0" />
   <parameter name="inpWords" value="1" />
   <parameter name="words" value="2" />
+ </module>
+ <module name="generic_fb_0" kind="generic_fb" version="1.0" enabled="1">
+  <parameter name="burstLength" value="16" />
  </module>
  <module name="hps_0" kind="altera_hps" version="15.1" enabled="1">
   <parameter name="ABSTRACT_REAL_COMPARE_TEST" value="false" />
@@ -426,8 +488,8 @@
   <parameter name="EXPORT_AFI_HALF_CLK" value="false" />
   <parameter name="EXTRA_SETTINGS" value="" />
   <parameter name="F2H_AXI_CLOCK_FREQ" value="50000000" />
-  <parameter name="F2H_SDRAM0_CLOCK_FREQ" value="180000000" />
-  <parameter name="F2H_SDRAM1_CLOCK_FREQ" value="180000000" />
+  <parameter name="F2H_SDRAM0_CLOCK_FREQ" value="187037037" />
+  <parameter name="F2H_SDRAM1_CLOCK_FREQ" value="187037037" />
   <parameter name="F2H_SDRAM2_CLOCK_FREQ" value="100" />
   <parameter name="F2H_SDRAM3_CLOCK_FREQ" value="100" />
   <parameter name="F2H_SDRAM4_CLOCK_FREQ" value="100" />
@@ -701,7 +763,7 @@
   <parameter name="S2FINTERRUPT_UART_Enable" value="false" />
   <parameter name="S2FINTERRUPT_USB_Enable" value="false" />
   <parameter name="S2FINTERRUPT_WATCHDOG_Enable" value="false" />
-  <parameter name="S2F_Width" value="3" />
+  <parameter name="S2F_Width" value="2" />
   <parameter name="SDIO_Mode" value="4-bit Data" />
   <parameter name="SDIO_PinMuxing" value="HPS I/O Set 0" />
   <parameter name="SEQUENCER_TYPE" value="NIOS" />
@@ -1049,7 +1111,7 @@
   <parameter name="gui_multiply_factor" value="1" />
   <parameter name="gui_number_of_clocks" value="2" />
   <parameter name="gui_operation_mode" value="direct" />
-  <parameter name="gui_output_clock_frequency0" value="135.0" />
+  <parameter name="gui_output_clock_frequency0" value="80.18" />
   <parameter name="gui_output_clock_frequency1" value="185.0" />
   <parameter name="gui_output_clock_frequency10" value="100.0" />
   <parameter name="gui_output_clock_frequency11" value="100.0" />
@@ -1138,6 +1200,15 @@
  <connection
    kind="avalon"
    version="15.1"
+   start="generic_fb_0.altera_axi4_master"
+   end="hps_0.f2h_sdram0_data">
+  <parameter name="arbitrationPriority" value="1" />
+  <parameter name="baseAddress" value="0x0000" />
+  <parameter name="defaultConnection" value="false" />
+ </connection>
+ <connection
+   kind="avalon"
+   version="15.1"
    start="stream2hps_0.avalon_master"
    end="hps_0.f2h_sdram1_data">
   <parameter name="arbitrationPriority" value="1" />
@@ -1169,6 +1240,15 @@
    end="config_register_stream2hps.avalon_slave_0">
   <parameter name="arbitrationPriority" value="1" />
   <parameter name="baseAddress" value="0x0040" />
+  <parameter name="defaultConnection" value="false" />
+ </connection>
+ <connection
+   kind="avalon"
+   version="15.1"
+   start="hps_0.h2f_lw_axi_master"
+   end="config_register_1.avalon_slave_0">
+  <parameter name="arbitrationPriority" value="1" />
+  <parameter name="baseAddress" value="0x0050" />
   <parameter name="defaultConnection" value="false" />
  </connection>
  <connection
@@ -1229,6 +1309,11 @@
    kind="clock"
    version="15.1"
    start="clk_0.clk"
+   end="config_register_1.clock" />
+ <connection
+   kind="clock"
+   version="15.1"
+   start="clk_0.clk"
    end="vga_fb_0.conf_clock" />
  <connection
    kind="clock"
@@ -1267,6 +1352,11 @@
    start="pll.outclk1"
    end="stream2hps_0.avalonclk" />
  <connection kind="clock" version="15.1" start="pll.outclk1" end="vga_fb_0.clock" />
+ <connection
+   kind="clock"
+   version="15.1"
+   start="pll.outclk1"
+   end="generic_fb_0.clock_sink" />
  <connection
    kind="clock"
    version="15.1"
@@ -1333,6 +1423,16 @@
    version="15.1"
    start="hps_0.h2f_reset"
    end="config_register_0.reset_sink" />
+ <connection
+   kind="reset"
+   version="15.1"
+   start="hps_0.h2f_reset"
+   end="generic_fb_0.reset_sink" />
+ <connection
+   kind="reset"
+   version="15.1"
+   start="hps_0.h2f_reset"
+   end="config_register_1.reset_sink" />
  <interconnectRequirement for="$system" name="qsys_mm.clockCrossingAdapter" value="HANDSHAKE" />
  <interconnectRequirement for="$system" name="qsys_mm.maxAdditionalLatency" value="1" />
 </system>

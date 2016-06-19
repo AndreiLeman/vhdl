@@ -11,6 +11,8 @@ use work.deltaSigmaModulator2;
 use work.interpolator256;
 use work.mainHPSInterface;
 use work.simple_altera_pll;
+use work.slow_clock;
+use work.ili9327Out;
 entity main2 is
 	port(CLOCK_50: in std_logic;
 			LEDR: out std_logic_vector(9 downto 0);
@@ -97,6 +99,19 @@ architecture a of main2 is
 	signal pio2data: std_logic_vector(31 downto 0);
 	--jtag
 	signal jtag_tdi,jtag_tdo,jtag_tms,jtag_tck: std_logic;
+	
+	--generic_fb lcd output
+	--i/o pins
+	signal lcd_cs_n,lcd_rs,lcd_wr_n,lcd_rd_n,lcd_rst_n,lcd_led: std_logic;
+	signal lcd_data: unsigned(15 downto 0);
+	--lcd user side interface signals
+	signal lcdClk,lcdOffscreen: std_logic;
+	signal lcdPos: position;
+	signal lcdPixel: color;
+	signal gfb_dataout: std_logic_vector(31 downto 0);
+	constant lcdW: integer := 320;
+	constant lcdH: integer := 240;
+	
 begin
 	pll1: simple_altera_pll generic map("50 MHz", "33.868799 MHz") port map(CLOCK_50,dacClk);
 	audioCClk <= not audioCClk when rising_edge(dacClk);
@@ -153,8 +168,8 @@ begin
 	aoutR_abs <= unsigned(aoutR) when aoutR>0 else unsigned(-aoutR);
 	aout_abs <= aoutL_abs when aoutL_abs>aoutR_abs and rising_edge(aclk)
 		else aoutR_abs when rising_edge(aclk);
-	LEDR(0) <= '1' when aout_abs>("000"&cnt1) and rising_edge(CLOCK_50)
-		else '0' when rising_edge(CLOCK_50);
+	--LEDR(0) <= '1' when aout_abs>("000"&cnt1) and rising_edge(CLOCK_50)
+	--	else '0' when rising_edge(CLOCK_50);
 	--LEDR <= std_logic_vector(aoutL(15 downto 6)) when aoutL>0 else std_logic_vector(-aoutL(15 downto 6));
 	
 	cl: signedClipper generic map(17,14) port map((aoutL(15)&aoutL)+(aoutR(15)&aoutR),osc_in);
@@ -197,6 +212,24 @@ begin
 	GPIO_0(20) <= jtag_tdi;
 	jtag_tdo <= GPIO_0(21);
 	
+	
+	
+	
+	
+	--lcd out
+	sc: entity slow_clock generic map(16,8) port map(CLOCK_50,lcdClk); --3.125MHz
+
+	--lcd controller
+	lcdOut: entity ili9327Out generic map(2) port map(clk=>lcdClk,p=>lcdPos,offscreen=>lcdOffscreen,
+		pixel=>lcdPixel, lcd_rs=>lcd_rs,lcd_wr_n=>lcd_wr_n,lcd_data=>lcd_data);
+	lcd_cs_n <= '0';
+	lcd_rst_n <= '1';
+	lcd_led <= '1';
+	lcd_rd_n <= '1';
+	
+	lcdPixel <= (unsigned(gfb_dataout(7 downto 0)), unsigned(gfb_dataout(15 downto 8)),
+		unsigned(gfb_dataout(23 downto 16))) when rising_edge(lcdClk);
+	
 	hps: mainHPSInterface port map(CLOCK_50, HPS_CONV_USB_N,HPS_ENET_INT_N,HPS_ENET_MDIO,
 			HPS_GSENSOR_INT, HPS_I2C1_SCLK, HPS_I2C1_SDAT, HPS_I2C2_SCLK, HPS_I2C2_SDAT, 
 			HPS_I2C_CONTROL, HPS_KEY, HPS_LED,HPS_SD_CMD, HPS_SPIM_SS, HPS_DDR3_CAS_N,
@@ -212,5 +245,38 @@ begin
 			fb_vga_out, vga_conf, vga_conf(127 downto 0),(31 downto 1=>'0'),
 			aclk,dataL,dataR,
 			std_logic_vector(ainL&ainR&X"00000000"),
-			aclk);
+			aclk,
+			
+			lcdClk,lcdOffscreen,
+			gfb_dataout
+			);
+	LEDR <= vga_conf(9 downto 0);
+	
+	
+	GPIO_1 <= (2=>lcd_led,
+					6=>lcd_rst_n,
+					0=>lcd_cs_n,
+					10=>lcd_data(15),
+					11=>'Z',				--T_IRQ
+					12=>lcd_data(14),
+					13=>'Z',				--T_DO
+					14=>lcd_data(13),
+					16=>lcd_data(12),
+					18=>lcd_data(11),
+					20=>lcd_data(10),
+					22=>lcd_data(9),
+					23=>lcd_data(7),
+					24=>lcd_data(8),
+					25=>lcd_data(6),
+					32=>lcd_rd_n,
+					34=>lcd_data(5),
+					26=>lcd_wr_n,
+					27=>lcd_data(4),
+					28=>lcd_rs,
+					29=>lcd_data(3),
+					31=>lcd_data(2),
+					33=>lcd_data(1),
+					35=>lcd_data(0),
+					others=>'1'
+					);
 end architecture;

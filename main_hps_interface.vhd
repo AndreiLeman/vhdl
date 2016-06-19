@@ -38,9 +38,14 @@ entity mainHPSInterface is
 			 user_irq: in std_logic_vector(31 downto 1);
 			 aclk: in std_logic;
 			 adataL,adataR: out signed(15 downto 0);
+			 
 			 --stream2hps
 			 stream2hps_datain: in std_logic_vector(63 downto 0);
-			 stream2hps_clk: in std_logic
+			 stream2hps_clk: in std_logic;
+			 
+			 --generic_fb
+			 gfb_videoclk,gfb_offscreen: in std_logic := '0';
+			 gfb_dataout: out std_logic_vector(31 downto 0) := (others => 'X')
 			);
 end entity;
 architecture a of mainHPSInterface is
@@ -137,7 +142,16 @@ architecture a of mainHPSInterface is
             stream2hps_0_irq_irq                  : out   std_logic;                                         -- irq
             vga_fb_conf_export                    : in    std_logic_vector(128 downto 0) := (others => 'X'); -- export
             vga_fb_reg_conf_export                : out   std_logic_vector(127 downto 0);                    -- export
-            pio_2_export                          : in    std_logic_vector(31 downto 0)  := (others => 'X')  -- export
+            pio_2_export                          : in    std_logic_vector(31 downto 0)  := (others => 'X');  -- export
+				
+				gfb_addrstart                         : in    std_logic_vector(31 downto 0)  := (others => 'X'); -- addrstart
+            gfb_addrend                           : in    std_logic_vector(31 downto 0)  := (others => 'X'); -- addrend
+            gfb_deviceenable                      : in    std_logic                      := 'X';             -- deviceenable
+            gfbv_videoclk                         : in    std_logic                      := 'X';             -- videoclk
+            gfbv_offscreen                        : in    std_logic                      := 'X';             -- offscreen
+            gfbv_dataout                          : out   std_logic_vector(31 downto 0);                     -- dataout
+            gfbc_export                           : out   std_logic_vector(63 downto 0);                     -- export
+            unused1_export                        : in    std_logic_vector(0 downto 0)   := (others => 'X')  -- export
         );
     end component main_hps;
 	 
@@ -154,6 +168,11 @@ architecture a of mainHPSInterface is
 	signal audio_irq,audio_irq1,stream2hps_irq: std_logic;
 	signal aclk1: std_logic;
 	signal memdata: std_logic_vector(31 downto 0);
+	
+	--generic_fb
+	signal gfb_addrstart,gfb_addrend: std_logic_vector(31 downto 0);
+	signal gfb_deviceenable: std_logic;
+	signal gfbc_export: std_logic_vector(63 downto 0);
 begin
 	audio_mem_clk <= not audio_mem_clk when rising_edge(aclk);
 	mem_raddr <= mem_raddr+1 when audio_mem_clk='1' and rising_edge(aclk);
@@ -167,13 +186,17 @@ begin
 	audio_irq <= '1' when (mem_raddr<audio_bufsize_words/4 or
 		(mem_raddr>=audio_bufsize_words/2 and mem_raddr<(audio_bufsize_words/2+audio_bufsize_words/4)))
 		and rising_edge(aclk) else '0' when rising_edge(aclk);
+
 	--irqs
 	audio_irq1 <= audio_irq when rising_edge(aclk);
 	irq(0) <= audio_irq1 when rising_edge(aclk);
 	irq(1) <= stream2hps_irq;
 	irq(31 downto 2) <= user_irq(31 downto 2);
 	
-	
+	--generic_fb configuration
+	gfb_addrstart <= gfbc_export(31 downto 1) & "0";
+	gfb_addrend <= gfbc_export(63 downto 32);
+	gfb_deviceenable <= gfbc_export(0);
 	
 	hps: component main_hps port map(
 		clk_clk                               => CLOCK_50,			--clk.clk
@@ -280,6 +303,18 @@ begin
 		stream2hps_0_dataclk_clk=>stream2hps_clk,
 		stream2hps_0_datain_export=>stream2hps_datain,
 		stream2hps_0_irq_irq=>stream2hps_irq,
-		pio_2_export=>pio2data
+		pio_2_export=>pio2data,
+		
+		gfb_addrstart=>gfb_addrstart,
+		gfb_addrend=>gfb_addrend,
+		
+		gfb_deviceenable=>gfb_deviceenable,
+		
+		gfbv_videoclk=>gfb_videoclk,
+		gfbv_offscreen=>gfb_offscreen,
+		gfbv_dataout=>gfb_dataout,
+		
+		gfbc_export=>gfbc_export,
+		unused1_export=>"0"
 	);
 end architecture;

@@ -256,7 +256,7 @@ begin
 	irq(0) <= audio_irq1 when rising_edge(aclk);
 	irq(3 downto 1) <= not KEY(3 downto 1);
 	irq(31 downto 4) <= (others=>'0');
-	
+
 	cl: signedClipper generic map(17,14) port map((aoutL(15)&aoutL)+(aoutR(15)&aoutR),osc_in);
 	o: generic_oscilloscope port map(aclk,fb_vga_out1(27),
 		(11 downto 0=>'0')&((unsigned(SW(8 downto 5))*unsigned(SW(8 downto 5)))),
@@ -387,4 +387,6 @@ begin
 		vga_fb_conf_export=>vga_conf,
 		vga_fb_reg_conf_export=>vga_conf(127 downto 0)
 	);
+	
+	LEDR <= vga_conf(9 downto 0);
 end architecture;

@@ -28,19 +28,21 @@ use work.counter_d;
 use work.graphics_types.all;
 --delay from p to outp is 3 videoclk cycles
 entity generic_oscilloscope is
+	generic(external_sample_pulse: boolean := false);
 	port(dataclk,videoclk: in std_logic;
 			samples_per_px: in unsigned(19 downto 0); --unregistered
 			datain: in signed(15 downto 0); --unregistered
 			W,H: in unsigned(11 downto 0);
 			p: in position; --registered
 			outp: out color; --registered
-			stop: in std_logic := '0');
+			stop: in std_logic := '0';
+			do_sample_addr: in std_logic := '0');
 end entity;
 architecture a of generic_oscilloscope is
 	signal c1: color;
 	signal nextpixel,nextpixel1,nextpixel2: std_logic;
 	signal cur_max,next_max,cur_min,next_min,last2_max,last2_min: unsigned(11 downto 0);
-	signal do_sample_waddr,do_sample_waddr1: std_logic;
+	signal do_sample_waddr,do_sample_waddr1,do_sample_waddr2: std_logic;
 	signal q1,q2: unsigned(11 downto 0);
 	signal cntval: unsigned(19 downto 0);
 	signal monoin1: signed(23 downto 0);
@@ -53,7 +55,7 @@ architecture a of generic_oscilloscope is
 	--because the ram has 2 clock cycles of delay
 begin
 	cnt: entity counter_d generic map(N=>20) port map(clk=>dataclk,outp=>cntval,max=>samples_per_px-1);
-	nextpixel <= '1' when cntval=0 else '0';
+	nextpixel <= '1' when cntval=0 and stop='0' else '0';
 	nextpixel1 <= nextpixel when rising_edge(dataclk);
 	--nextpixel2 <= nextpixel1 when falling_edge(dataclk);
 	
@@ -74,15 +76,22 @@ begin
 	last2_min <= rec_in1 when rec_in1<rec_in2 else rec_in2;
 	last2_max <= rec_in1 when rec_in1>rec_in2 else rec_in2;
 	ram_d <= std_logic_vector(cur_max) & std_logic_vector(cur_min);
-	wr_addr <= wr_addr+1 when stop='0' and nextpixel1='1' and (not (wr_addr=raddr_base-1))
+	wr_addr <= wr_addr+1 when nextpixel1='1' and (not (wr_addr=raddr_base-1))
 		and rising_edge(dataclk);
 	mem: entity osc_ram port map(wrclock=>dataclk,wraddress=>std_logic_vector(wr_addr),
 		data=>std_logic_vector(ram_d),wren=>'1',
 		rdaddress=>std_logic_vector(rd_addr),rdclock=>videoclk,q=>ram_q);
 	
-	do_sample_waddr1 <= '1' when p(1)=H-1 and p(0)=W-2 else '0';
-	do_sample_waddr <= do_sample_waddr1 when rising_edge(videoclk);
-	raddr_base <= wr_addr-W+1 when do_sample_waddr='1' and rising_edge(videoclk);
+g1:	if external_sample_pulse generate
+		do_sample_waddr <= do_sample_addr;
+	end generate;
+g2: if not external_sample_pulse generate
+		do_sample_waddr <= '1' when p(1)=H-1 and p(0)=W-2 else '0';
+	end generate;
+	do_sample_waddr1 <= do_sample_waddr when rising_edge(videoclk);
+	do_sample_waddr2 <= do_sample_waddr1 when rising_edge(videoclk);
+	raddr_base <= wr_addr-W+1 when do_sample_waddr2='0'
+		and do_sample_waddr1='1' and rising_edge(videoclk);
 	--addr input of ram is already registered
 	rd_addr <= p(0)+raddr_base;-- when rising_edge(clk);
 	

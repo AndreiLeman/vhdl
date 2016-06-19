@@ -7,7 +7,8 @@ use ieee.std_logic_1164.all;
 entity dcram is
 	generic(width: integer := 8;
 				-- real depth is 2^depth_order
-				depthOrder: integer := 9);
+				depthOrder: integer := 9;
+				outputRegistered: boolean := false);
 	port(rdclk,wrclk: in std_logic;
 			-- read side; synchronous to rdclk
 			rden: in std_logic;
@@ -27,14 +28,23 @@ architecture a of dcram is
 	type ram1t is array(depth-1 downto 0) of
 		std_logic_vector(width-1 downto 0);
 	signal ram1: ram1t;
+	
+	signal tmpdata: std_logic_vector(width-1 downto 0);
 begin
 	--inferred ram
 	process(rdclk)
 	begin
 		 if(rden='1' and rising_edge(rdclk)) then
-			  rddata <= ram1(to_integer(rdaddr));
+			  tmpdata <= ram1(to_integer(rdaddr));
 		 end if;
 	end process;
+	
+g1:	if outputRegistered generate
+		rddata <= tmpdata when rising_edge(rdclk);
+	end generate;
+g2:	if not outputRegistered generate
+		rddata <= tmpdata;
+	end generate;
 	
 	process(wrclk)
 	begin

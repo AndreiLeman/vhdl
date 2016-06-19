@@ -30,6 +30,8 @@ use work.graphics_types.all;
 use work.ili9341Out;
 use work.generic_oscilloscope;
 use work.ledPreprocess;
+use work.cic_lpf_2_nd;
+use work.cic_lpf_2_d;
 entity top2 is
     port(
 		LED: out std_logic_vector(1 downto 0);
@@ -79,7 +81,7 @@ architecture a of top2 is
 	
 	--clocks
 	signal CLOCK_25b: std_logic;
-	signal CLOCK_120,CLOCK_60,CLOCK_150,CLOCK_200,
+	signal CLOCK_225,CLOCK_60,
 		CLOCK_300, CLOCK_15,internalclk: std_logic;
 	signal usbclk,dacClk: std_logic;
 	signal clkgen_en: std_logic := '0';
@@ -103,6 +105,10 @@ architecture a of top2 is
 	signal adc_shifted,adc_shifted_resynced: signed(9 downto 0);
 	signal adc_failcnt: unsigned(15 downto 0);
 	signal adc_checksum: std_logic;
+	
+	--cic filter (lowpass)
+	signal adcFClk: std_logic;
+	signal adcFiltered: signed(17 downto 0);
 	
 	--input shift register (debugging)
 	signal sr,cssr: std_logic_vector(7 downto 0);
@@ -156,13 +162,19 @@ architecture a of top2 is
 	signal dsss_up,dsss_down: std_logic;
 	signal dsssDebugDisplay,dsss_cnt,dsss_cntNext: unsigned(15 downto 0);
 	
+	--dsss decoder 2
+	signal sin1Freq: unsigned(27 downto 0);
+	signal sin1: signed(8 downto 0);
+	signal mix1: signed(18 downto 0);
+	signal adcFiltered2: signed(33 downto 0);
+	
 	--lcd display
 	signal lcd_scl,lcd_sdi,lcd_cs,lcd_dc,lcd_rst,lcdclk: std_logic;
 	signal lcdPos: position;
 	signal lcdPixel: color;
 	
 	--oscilloscope
-	signal oscDataClk: std_logic;
+	signal oscDataClk,oscSampleAddr: std_logic;
 	signal oscDataIn: signed(15 downto 0);
 	signal oscPos: position;
 	signal samples_per_px: unsigned(19 downto 0);
@@ -196,10 +208,10 @@ begin
 	clkin1_buf : IBUFG port map (O => CLOCK_25b, I => CLOCK_25);
 	pll: entity clocks port map(
 		CLK_IN1=>CLOCK_25b,
-		CLOCK_120=>CLOCK_120,
+		CLOCK_60=>CLOCK_60,
+		CLOCK_225=>CLOCK_225,
 		CLOCK_300=>CLOCK_300,
 		LOCKED=>open);
-	CLOCK_60 <= not CLOCK_60 when rising_edge(CLOCK_120);
 	
 	--CLOCK_60 <= internalclk;
 	usbclk <= CLOCK_60;
@@ -212,19 +224,6 @@ begin
 	outbuf: ODDR2 generic map(DDR_ALIGNMENT=>"NONE",SRTYPE=>"SYNC")
 		port map(C0=>usbclk, C1=>not usbclk,CE=>'1',D0=>'1',D1=>'0',Q=>USB_REFCLK);
 
---	fifo1: entity fifo_generator_v9_3
---		  PORT MAP (
---			 wr_clk => adcSclk,
---			 rd_clk => usbclk,
---			 din => txdat,
---			 wr_en => txval,
---			 rd_en => usbtxrdy,
---			 dout => usbtxdat,
---			 full => fifo1full,
---			 empty => fifo1empty
---		  );
---	usbtxval <= not fifo1empty;
---	txrdy <= not fifo1full;
 	
 	fifo1: entity dcfifo generic map(8,14) port map(usbclk,txclk,
 		usbtxval,usbtxrdy,usbtxdat,open,
@@ -265,8 +264,8 @@ cond_audio_n:
 		AUDIO(1) <= '0';
 	end generate;
 	-- adc data
-	adcSclk <= CLOCK_120;
-	adc_sampler: entity autoSampler generic map(clkdiv=>6, width=>10)
+	adcSclk <= CLOCK_300;
+	adc_sampler: entity autoSampler generic map(clkdiv=>4, width=>10)
 		port map(clk=>adcSclk,datain=>ADC,dataout=>adc_sampled,dataoutvalid=>adc_valid,
 			failcnt=>adc_failcnt);
 	
@@ -277,14 +276,20 @@ cond_audio_n:
 	adc_shifted_valid <= adc_valid when rising_edge(adcSclk);
 	
 	--resynchronize adc data to adcClk
-	adc_sc: entity slow_clock generic map(6,3) port map(adcSclk,adcClk,adc_shifted_valid);
+	adc_sc: entity slow_clock generic map(4,2) port map(adcSclk,adcClk,adc_shifted_valid);
 	adc_shifted_resynced <= adc_shifted when rising_edge(adcClk);
 	
-	adc_reduced <= adc_shifted_resynced(7 downto 0) when SW_clean(1)='0' else adc_shifted(9 downto 2);
+	--filter adc data
+	adc_sc_f: entity slow_clock generic map(12,6) port map(adcSclk,adcFClk);
+	filt: entity cic_lpf_2_d generic map(inbits=>10,outbits=>18,decimation=>3,stages=>5,bw_div=>1)
+		port map(adcClk,adcFClk,adc_shifted_resynced,adcFiltered);
+	
+	adc_reduced <= adcFiltered2(29 downto 22) when SW_clean(1)='0'
+		else adcFiltered(16 downto 9);
 	--adc_reduced <= adc_shifted(9 downto 2);
 	
 	-- uncomment for ADC data into usb
-	txclk <= adcClk;
+	txclk <= adcFClk;
 	txval <= '1'; --adc_shifted_valid when rising_edge(adcSclk);
 	txdat <= std_logic_vector(adc_reduced(7 downto 0)) when rising_edge(adcClk);
 	
@@ -323,7 +328,7 @@ cond_audio2:
 	end generate;
 cond_audio2_n:
 	if not ENABLE_AUDIO generate
-		--displayInt <= dsss_cnt;
+		displayInt <= adc_failcnt;
 	end generate;
 	
 	displayDots <= '0'; --'1' when bufspc_min=0 else '0';
@@ -401,15 +406,29 @@ cond_audio3_n:
 	dsss_cnt <= dsss_cntNext when rising_edge(adcClk);
 	--dsss: entity dsssDecoder generic map(10)
 	--	port map(adcClk,adc_shifted_resynced,dsssDebugDisplay,LED(0),LED(1),ebuttons(1),dsss_up,dsss_down);
+	--displayInt <= dsssDebugDisplay when SW_clean(0)='0' else dsss_cnt;
 	
 	
-	displayInt <= dsssDebugDisplay when SW_clean(0)='0' else dsss_cnt;
 	
+	
+	--dsss decoder 2
+	
+	--downconvert signal
+	sin1Freq <= to_unsigned(60845370,28);	--5.66666667MHz @ 25Msps
+	sg: entity sineGenerator port map(adcFClk,sin1Freq,sin1);
+	mix1 <= sin1*adcFiltered(17 downto 8) when rising_edge(adcFClk);
+	--mix1's MSB can be dropped because "10000000..." is never reached,
+	--since sine generator never outputs the most negative value
+	
+	
+	--filter signal to 0.5MHz bandwidth
+	filt2: entity cic_lpf_2_nd generic map(inbits=>10,outbits=>34,stages=>5,bw_div=>25)
+		port map(adcFClk,mix1(17 downto 8),adcFiltered2);
 	
 	
 	--lcd display
-	-- 20MHz lcd clock
-	lcdc: entity slow_clock generic map(6,3) port map(CLOCK_120,lcdclk);
+	-- 18.75MHz lcd clock
+	lcdc: entity slow_clock generic map(12,6) port map(CLOCK_225,lcdclk);
 	lcdcntrl: entity ili9341Out port map(clk=>lcdclk,
 		p=>lcdPos,pixel=>lcdPixel,
 		lcd_scl=>lcd_scl,lcd_sdi=>lcd_sdi,
@@ -417,13 +436,17 @@ cond_audio3_n:
 	
 	--lcdPixel <= (X"ff",X"00",X"00") when lcdPos(0)>50 and lcdPos(0)<100
 	--	and lcdPos(1)>50 and lcdPos(1)<100 else (X"00",X"00",X"00");
-	osc: entity generic_oscilloscope port map(dataclk=>oscDataClk,
-		videoclk=>lcdclk,samples_per_px=>samples_per_px,
-		datain=>oscDataIn,W=>to_unsigned(320,12),H=>to_unsigned(240,12),
-		p=>oscPos,outp=>lcdPixel);
+	osc: entity generic_oscilloscope generic map(external_sample_pulse=>true)
+		port map(dataclk=>oscDataClk,
+			videoclk=>lcdclk,samples_per_px=>samples_per_px,
+			datain=>oscDataIn,W=>to_unsigned(320,12),H=>to_unsigned(240,12),
+			p=>oscPos,outp=>lcdPixel,stop=>ebuttons(0),
+			do_sample_addr=>oscSampleAddr);
 	oscDataClk <= adcClk;
 	oscDataIn <= adc_shifted_resynced&"000000";
 	oscPos <= (319-lcdPos(1), lcdPos(0)) when rising_edge(lcdclk);
+	oscSampleAddr <= '1' when lcdPos(0)=0 and lcdPos(1)=319 else '0';
+	
 	samples_per_px <= to_unsigned(0,20) when SW(0)='1'
 		else to_unsigned(1,20);
 	

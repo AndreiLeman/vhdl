@@ -45,7 +45,7 @@ architecture a of debugtool_bytedisplay is
 	signal realdatavalid: std_logic;
 	--control logic
 	signal latched,latchedNext: std_logic := '0';
-	signal queueFull: std_logic;
+	signal queueWritable: std_logic;
 	
 	signal hex_cs1: std_logic;
 	signal tmp: unsigned(3 downto 0);
@@ -74,14 +74,14 @@ g: for I in 0 to hexcount-1 generate
 	isWriting <= realdatavalid and not writeprev when rising_edge(dataclk);
 	
 	capturingNext <= '1' when latched='0' else
-		'0' when queueFull='1' else capturing;
+		'0' when queueWritable='0' else capturing;
 	capturing <= capturingNext when rising_edge(dataclk);
 g1:
 	if use_queue generate
 		que: entity debugtool_queue generic map(datalen+8,9)
-			port map(dataclk,button,realdatavalid,latched,queueFull,
-				std_logic_vector(realdata),displaydata,writeprev);
-		full <= queueFull;
+			port map(dataclk,button,realdatavalid,latched,queueWritable,
+				std_logic_vector(realdata),displaydata,writeprev=>writeprev);
+		full <= not queueWritable;
 	end generate;
 --g2:
 --	if not use_queue generate

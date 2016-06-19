@@ -79,8 +79,8 @@ begin
 	-- addr    ACK
 		X"3d" & "1" &
 	-- data         ACK
-		"00000100" & "1" &	-- 0x3d (clock2 divider)
-		"10110000" & "1" &	-- 0x3e (clock2 divider)
+		"00000001" & "1" &	-- 0x3d (clock2 divider)
+		"01000000" & "1" &	-- 0x3e (clock2 divider)
 	
 		I2CRESTART_data &
 	-- addr    ACK

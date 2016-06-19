@@ -62,90 +62,88 @@ port
  (-- Clock in ports
   CLK_IN1           : in     std_logic;
   -- Clock out ports
-  CLOCK_120          : out    std_logic;
+  CLOCK_225          : out    std_logic;
   CLOCK_300          : out    std_logic;
+  CLOCK_60          : out    std_logic;
   -- Status and control signals
   LOCKED            : out    std_logic
  );
 end clocks;
 
 architecture xilinx of clocks is
-  attribute CORE_GENERATION_INFO : string;
-  attribute CORE_GENERATION_INFO of xilinx : architecture is "clk_wiz_v3_6,clk_wiz_v3_6,{component_name=clk_wiz_v3_6,use_phase_alignment=true,use_min_o_jitter=false,use_max_i_jitter=false,use_dyn_phase_shift=false,use_inclk_switchover=false,use_dyn_reconfig=false,feedback_source=FDBK_AUTO,primtype_sel=PLL_BASE,num_out_clk=5,clkin1_period=40.000,clkin2_period=40.000,use_power_down=false,use_reset=false,use_locked=true,use_inclk_stopped=false,use_status=false,use_freeze=false,use_clk_valid=false,feedback_type=SINGLE,clock_mgr_type=AUTO,manual_override=false}";
   -- Input clock buffering / unused connectors
   signal clkin1      : std_logic;
   -- Output clock buffering / unused connectors
   signal clkfbout         : std_logic;
   signal clkfbout_buf     : std_logic;
-  signal CLOCK_120u, CLOCK_300u: std_logic;
+  signal CLOCK_225u, CLOCK_300u,CLOCK_60u: std_logic;
 	signal unused0,unused1,unused2,unused3: std_logic;
 begin
 	clkin1 <= CLK_IN1;
-  -- Clocking primitive
-  --------------------------------------
-  -- Instantiation of the PLL primitive
-  --    * Unused inputs are tied off
-  --    * Unused outputs are labeled unused
+	-- Clocking primitive
+	--------------------------------------
+	-- Instantiation of the PLL primitive
+	--    * Unused inputs are tied off
+	--    * Unused outputs are labeled unused
 
-  pll_base_inst : PLL_BASE
-  generic map
-   (BANDWIDTH            => "OPTIMIZED",
-    CLK_FEEDBACK         => "CLKFBOUT",
-    COMPENSATION         => "SYSTEM_SYNCHRONOUS",
-    DIVCLK_DIVIDE        => 1,
-    CLKFBOUT_MULT        => 24,
-    CLKFBOUT_PHASE       => 0.000,
-    CLKOUT0_DIVIDE       => 10,
-    CLKOUT0_PHASE        => 0.000,
-    CLKOUT0_DUTY_CYCLE   => 0.500,
-    CLKOUT1_DIVIDE       => 2,
-    CLKOUT1_PHASE        => 0.000,
-    CLKOUT1_DUTY_CYCLE   => 0.500,
-    CLKOUT2_DIVIDE       => 3,
-    CLKOUT2_PHASE        => 0.000,
-    CLKOUT2_DUTY_CYCLE   => 0.500,
-    CLKOUT3_DIVIDE       => 5,
-    CLKOUT3_PHASE        => 0.000,
-    CLKOUT3_DUTY_CYCLE   => 0.500,
-    CLKOUT4_DIVIDE       => 40,
-    CLKOUT4_PHASE        => 0.000,
-    CLKOUT4_DUTY_CYCLE   => 0.500,
-    CLKIN_PERIOD         => 40.000,
-    REF_JITTER           => 0.003)
-  port map
-    -- Output clocks
-   (CLKFBOUT            => clkfbout,
-    CLKOUT0             => unused0,
-    CLKOUT1             => CLOCK_300u,
-    CLKOUT2             => unused1,
-    CLKOUT3             => CLOCK_120u,
-    CLKOUT4             => unused2,
-    CLKOUT5             => unused3,
-    -- Status and control signals
-    LOCKED              => LOCKED,
-    RST                 => '0',
-    -- Input clock control
-    CLKFBIN             => clkfbout_buf,
-    CLKIN               => clkin1);
+	pll_base_inst : PLL_BASE
+		generic map(
+			BANDWIDTH            => "OPTIMIZED",
+			CLK_FEEDBACK         => "CLKFBOUT",
+			COMPENSATION         => "SYSTEM_SYNCHRONOUS",
+			DIVCLK_DIVIDE        => 1,
+			CLKFBOUT_MULT        => 36,
+			CLKFBOUT_PHASE       => 0.000,
+			CLKOUT0_DIVIDE       => 10,
+			CLKOUT0_PHASE        => 0.000,
+			CLKOUT0_DUTY_CYCLE   => 0.500,
+			CLKOUT1_DIVIDE       => 3,
+			CLKOUT1_PHASE        => 0.000,
+			CLKOUT1_DUTY_CYCLE   => 0.500,
+			CLKOUT2_DIVIDE       => 15,
+			CLKOUT2_PHASE        => 0.000,
+			CLKOUT2_DUTY_CYCLE   => 0.500,
+			CLKOUT3_DIVIDE       => 4,
+			CLKOUT3_PHASE        => 0.000,
+			CLKOUT3_DUTY_CYCLE   => 0.500,
+			CLKOUT4_DIVIDE       => 40,
+			CLKOUT4_PHASE        => 0.000,
+			CLKOUT4_DUTY_CYCLE   => 0.500,
+			CLKIN_PERIOD         => 40.000,
+			REF_JITTER           => 0.003)
+		port map
+		-- Output clocks
+			(CLKFBOUT            => clkfbout,
+			CLKOUT0             => unused0,
+			CLKOUT1             => CLOCK_300u,
+			CLKOUT2             => CLOCK_60u,
+			CLKOUT3             => CLOCK_225u,
+			CLKOUT4             => unused2,
+			CLKOUT5             => unused3,
+			-- Status and control signals
+			LOCKED              => LOCKED,
+			RST                 => '0',
+			-- Input clock control
+			CLKFBIN             => clkfbout_buf,
+			CLKIN               => clkin1);
 
-  -- Output buffering
-  -------------------------------------
-  clkf_buf : BUFG
-  port map
-   (O => clkfbout_buf,
-    I => clkfbout);
-
-
-  clkout300_buf : BUFG
-  port map
-   (O   => CLOCK_300,
-    I   => CLOCK_300u);
+	-- Output buffering
+	-------------------------------------
+	clkf_buf : BUFG port map
+		(O => clkfbout_buf,
+		I => clkfbout);
 
 
+	clkout300_buf : BUFG port map
+		(O   => CLOCK_300,
+		I   => CLOCK_300u);
 
-  clkout120_buf : BUFG
-  port map
-   (O   => CLOCK_120,
-    I   => CLOCK_120u);
+	clkout60_buf : BUFG port map
+		(O   => CLOCK_60,
+		I   => CLOCK_60u);
+
+	clkout240_buf : BUFG port map
+		(O   => CLOCK_225,
+		I   => CLOCK_225u);
 
 end xilinx;

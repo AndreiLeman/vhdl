@@ -54,13 +54,13 @@ entity sr_unsigned is
 end;
 
 architecture a of sr_unsigned is
-	type arr_t is array(len-1 downto 0) of unsigned(bits-1 downto 0);
+	type arr_t is array(len downto 0) of unsigned(bits-1 downto 0);
 	signal arr: arr_t;
 begin
-g:	for I in 0 to len-2 generate
+g:	for I in 0 to len-1 generate
 		arr(I) <= arr(I+1) when rising_edge(clk);
 	end generate;
-	arr(len-1) <= din when rising_edge(clk);
+	arr(len) <= din;
 	dout <= arr(0);
 end a;
 

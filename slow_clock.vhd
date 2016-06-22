@@ -10,7 +10,9 @@ entity slow_clock is
 				dutycycle: integer := 20000000);
 	port (clk: in std_logic;
 			o: out std_logic;
-			rst: in std_logic := '0');
+			rst: in std_logic := '0';
+			phase: out unsigned(integer(ceil(log2(real(divide))))-1 downto 0)
+					:= (others=>'X'));
 end;
 
 architecture a of slow_clock is
@@ -23,6 +25,7 @@ begin
 		cs+1 when cs<(divide-1) else to_unsigned(0,b);
 	next_out <= '1' when cs<dutycycle else '0';
 	o <= next_out when rising_edge(clk);
+	phase <= cs when rising_edge(clk);
 end architecture;
 
 library ieee;

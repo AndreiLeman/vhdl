@@ -19,18 +19,10 @@ use work.serdes_test;
 use work.clocks;
 use work.dcfifo;
 use work.sineGenerator;
---use work.fifo_generator_v9_3;
-use work.dsssDecoder;
-use work.graphics_types.all;
-use work.ili9341Out;
-use work.generic_oscilloscope;
-use work.ledPreprocess;
-use work.cic_lpf_2_nd;
 use work.cic_lpf_2_d;
-use work.dsssDecoder2;
-use work.dsssDecoder3;
-use work.dcram;
-use work.generic_bar_display;
+use work.cic_lpf_2_nd;
+use work.dsssTest1Top;
+use work.ledPreprocess;
 entity top2 is
     port(
 		LED: out std_logic_vector(1 downto 0);
@@ -148,38 +140,16 @@ architecture a of top2 is
 	signal dsss_up,dsss_down: std_logic;
 	signal dsssDebugDisplay,dsss_cnt,dsss_cntNext: unsigned(15 downto 0);
 	
-	--dsss decoder 2
+	
+	signal lcd_scl,lcd_sdi,lcd_cs,lcd_dc,lcd_rst,lcdclk: std_logic;
 	signal sin1Freq: unsigned(27 downto 0);
 	signal sin1: signed(8 downto 0);
 	signal mix1: signed(18 downto 0);
 	signal adcFiltered2: signed(33 downto 0);
 	signal adcFiltered2TOffset: signed(19 downto 0);
 	signal adcFiltered2T,adcFiltered2Truncated: signed(9 downto 0);
-	
-	--lcd display
-	constant lcdW: integer := 320;
-	constant lcdH: integer := 240;
-	signal lcd_scl,lcd_sdi,lcd_cs,lcd_dc,lcd_rst,lcdclk: std_logic;
-	signal lcdPos: position;
-	signal lcdPixel: color;
-	
-	--oscilloscope
-	signal oscDataClk,oscSampleAddr: std_logic;
+	signal oscDataClk: std_logic;
 	signal oscDataIn: signed(15 downto 0);
-	signal oscPos: position;
-	signal oscPixel: color;
-	signal samples_per_px: unsigned(19 downto 0);
-	
-	--dsss2 + display
-	signal dsssPhase: unsigned(7 downto 0); --not the code phase, but the divclk phase
-	signal dsssOutValid: std_logic;
-	signal dsssOutAddr: unsigned(7 downto 0);
-	signal dsssOutData: signed(16 downto 0);
-	signal dsss2ramAddr: unsigned(7 downto 0);
-	signal dsss2ramData: signed(11 downto 0);
-	signal dsss2Pixel: color;
-	signal dsss2DisplayAddr: unsigned(11 downto 0);
-	signal dsss2DisplayData: std_logic_vector(11 downto 0);
 begin
 	assert not (ENABLE_AUDIO and ENABLE_USBGPIO)
 		report "ENABLE_AUDIO and ENABLE_USBGPIO are exclusive" severity failure;
@@ -388,11 +358,6 @@ cond_audio3_n:
 	--	port map(adcClk,adc_shifted_resynced,dsssDebugDisplay,LED(0),LED(1),ebuttons(1),dsss_up,dsss_down);
 	--displayInt <= dsssDebugDisplay when SW_clean(0)='0' else dsss_cnt;
 	
-	
-	
-	
-	--dsss decoder 2
-	
 	--downconvert signal
 	sin1Freq <= to_unsigned(60845370,28);	--5.66666667MHz @ 25Msps
 	sg: entity sineGenerator port map(adcFClk,sin1Freq,sin1);
@@ -400,8 +365,7 @@ cond_audio3_n:
 	--mix1 <= sin1 & "0000000000";
 	--mix1's MSB can be dropped because "10000000..." is never reached,
 	--since sine generator never outputs the most negative value
-	
-	
+
 	--filter signal to 0.5MHz bandwidth
 	filt2: entity cic_lpf_2_nd generic map(inbits=>10,outbits=>34,stages=>5,bw_div=>25)
 		port map(adcFClk,mix1(17 downto 8),adcFiltered2);
@@ -409,50 +373,18 @@ cond_audio3_n:
 	adcFiltered2TOffset <= adcFiltered2TOffset+resize(adcFiltered2Truncated,20) when rising_edge(adcFClk);
 	adcFiltered2Truncated <= adcFiltered2T-adcFiltered2TOffset(19 downto 10) when rising_edge(adcFClk);
 	
-	--lcd display
+	
 	-- 18.75MHz lcd clock
 	lcdc: entity slow_clock generic map(12,6) port map(CLOCK_225,lcdclk);
-	lcdcntrl: entity ili9341Out port map(clk=>lcdclk,
-		p=>lcdPos,pixel=>lcdPixel,
-		lcd_scl=>lcd_scl,lcd_sdi=>lcd_sdi,
-		lcd_cs=>lcd_cs,lcd_dc=>lcd_dc,lcd_rst=>lcd_rst);
-	lcdPixel <= oscPixel when SW(0)='0' else dsss2Pixel;
 	
-	--oscilloscope
-	osc: entity generic_oscilloscope generic map(external_sample_pulse=>true)
-		port map(dataclk=>oscDataClk,
-			videoclk=>lcdclk,samples_per_px=>samples_per_px,
-			datain=>oscDataIn,W=>to_unsigned(320,12),H=>to_unsigned(240,12),
-			p=>oscPos,outp=>oscPixel,stop=>ebuttons(0),
-			do_sample_addr=>oscSampleAddr);
+	--dsss submodule
+	
 	oscDataClk <= adcClk;
 	oscDataIn <= adc_shifted_resynced&"000000";
-	oscPos <= (319-lcdPos(1), 239-lcdPos(0)) when rising_edge(lcdclk);
-	oscSampleAddr <= '1' when lcdPos(0)=0 and lcdPos(1)=319 else '0';
-	samples_per_px <= to_unsigned(0,20) when SW(0)='1'
-		else to_unsigned(1,20);
 	
+	dsss_test: entity dsssTest1Top port map(CLOCK_225,lcdclk,oscDataClk,adcFClk,
+		oscDataIn,adcFiltered2Truncated,lcd_scl,lcd_sdi,lcd_cs,lcd_dc,lcd_rst,SW,ebuttons);
 	
-	--dsss decoder
-	sc_dsss2: entity slow_clock generic map(225,100) port map(clk=>CLOCK_225,o=>CLOCK_1,phase=>dsssPhase);
-	dsss2: entity dsssDecoder3 generic map(clkdiv=>225, clkdiv_order=>8, inbits=>8, outbits=>17)
-		port map(coreclk=>CLOCK_225,divclk=>CLOCK_1,din=>adcFiltered2Truncated(9 downto 2),
-			divclkPhase=>dsssPhase, outValid=>dsssOutValid,outAddr=>dsssOutAddr,outData=>dsssOutData);
-	
-	--correlator output display
-	dsss2ram: entity dcram generic map(width=>12,depthOrder=>8,outputRegistered=>false)
-		port map(rdclk=>lcdClk,wrclk=>CLOCK_225,
-			rden=>'1',rdaddr=>dsss2DisplayAddr(7 downto 0),
-			rddata=>dsss2DisplayData,
-			wren=>dsssOutValid,wraddr=>dsss2ramAddr,
-			wrdata=>std_logic_vector(dsss2ramData));
-	dsss2ramData <= dsssOutData(16 downto 5)+120 when rising_edge(CLOCK_225);
-	dsss2ramAddr <= dsssOutAddr when rising_edge(CLOCK_225);
-
-	bardisp: entity generic_bar_display port map(clk=>lcdClk,
-		W=>to_unsigned(lcdW,12), H=>to_unsigned(lcdH,12), p=>oscPos,
-		outp=>dsss2Pixel,ram_addr=>dsss2DisplayAddr,
-		ram_data=>unsigned(dsss2DisplayData));
 	
 	--I/Os
 	GPIOR(0) <= lcd_sdi when falling_edge(lcdclk);

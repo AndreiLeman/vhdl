@@ -11,6 +11,7 @@ entity dsssDecoder3 is
 			inbits: integer := 10;
 			outbits: integer := 17;
 			codeLenOrder: integer := 10;
+			preprocess: boolean := true;	--whether to take abs() of input
 			combSeparationOrder: integer := 0);
 	port(
 		-- divclk runs at Fs (din sample rate); coreclk runs at Fs * clkdiv
@@ -47,7 +48,7 @@ architecture a of dsssDecoder3 is
 	signal shouldOutput,resetContents,resetContents1,resetContents2: std_logic;
 	
 	--input preprocessing
-	signal dinU,dinPreprocessed,dinPreprocessed3: signed(inbits-1 downto 0);
+	signal dinU,dinPreprocessed0,dinPreprocessedNext,dinPreprocessed,dinPreprocessed3: signed(inbits-1 downto 0);
 	
 	--accumulator ram
 	signal accWAddr,accRAddr: unsigned(clkDivOrder+combSeparationOrder-1 downto 0);
@@ -57,17 +58,25 @@ architecture a of dsssDecoder3 is
 	--accumulator intermediate signals
 	signal accOperand,accOperandNext: signed(inbits-1 downto 0);
 	signal accBase,accBaseNext: signed(outbits-1 downto 0);
-	signal accSum: signed(outbits-1 downto 0);
+	signal accSum,accSumNext: signed(outbits-1 downto 0);
 	
 	--output registers
-	signal outValid0,outValid0Next, outValidS1: std_logic;
-	signal outAddr0,outAddr0Next, outAddrS1: unsigned(clkDivOrder+combSeparationOrder-1 downto 0);
-	signal outData0,outData0Next, outDataS1: signed(outbits-1 downto 0);
+	signal outValid0,outValid0Next, outValidS1,outValidS2,outValidS3: std_logic;
+	signal outAddr0,outAddr0Next, outAddrS1,outAddrS2,outAddrS3: unsigned(clkDivOrder+combSeparationOrder-1 downto 0);
+	signal outData0,outData0Next, outDataS1,outDataS2,outDataS3: signed(outbits-1 downto 0);
 begin
 	--preprocessing
-	dinU <= din when din>=0 else -din;
-	dinPreprocessed <= dinU when rising_edge(divclk);
+g1:	if preprocess generate
+		dinU <= din when din>=0 else -din;
+		dinPreprocessed0 <= dinU when rising_edge(divclk);
+	end generate;
+g2: if not preprocess generate
+		dinPreprocessed0 <= din when rising_edge(divclk);
+	end generate;
 	
+	dinPreprocessedNext <= dinPreprocessed0 when falling_edge(divclk);
+	dinPreprocessed <= dinPreprocessedNext when divclkPhase=(clkDiv-1) and rising_edge(coreclk);
+
 	--ram
 	ram: entity dcram generic map(width=>outbits,
 			depthOrder=>clkDivOrder+combSeparationOrder,
@@ -102,10 +111,10 @@ begin
 	ramPos2 <= ramPos1 when rising_edge(coreclk);
 	ramPos3 <= ramPos2 when rising_edge(coreclk);
 	sr_din: entity sr_signed generic map(bits=>inbits,len=>3) port map(coreclk,dinPreprocessed,dinPreprocessed3);
-	--synchronized: resetContents2, divclkPhase3, accRData, code, and dinPreprocessed3
+	--synchronized: resetContents2, ramPos3, accRData, code, and dinPreprocessed3
 
 		--output previous ram data if we are the 0th code phase
-		outAddr0Next <= ramPos3 when resetContents2='1' else outAddr0;
+		outAddr0Next <= not ramPos3 when resetContents2='1' else outAddr0;
 		outData0Next <= accRData when resetContents2='1' else outData0;
 		outValid0Next <= resetContents2 when ramPos3(clkDivOrder+combSeparationOrder-1 downto combSeparationOrder)=0
 			else '1' when resetContents2='1'
@@ -123,7 +132,8 @@ begin
 		accBase <= accBaseNext when rising_edge(coreclk);
 		
 		--calculate sum
-		accSum <= accBase+accOperand when rising_edge(coreclk);
+		accSumNext <= accBase when accBase(outbits-1)/=accBase(outbits-2) else accBase+accOperand;
+		accSum <= accSumNext when rising_edge(coreclk);
 
 	ramPos4 <= ramPos3 when rising_edge(coreclk);
 	--synchronized: outAddr0, outData0, outValid0, ramPos4
@@ -140,7 +150,11 @@ begin
 		accWAddr <= ramPos5;
 		accWData <= accSum;
 
-	outAddr <= outAddrS1 when falling_edge(divclk);
-	outData <= outDataS1 when falling_edge(divclk);
-	outValid <= outValidS1 when falling_edge(divclk);
+	outAddrS2 <= outAddrS1 when divclkPhase=0 and rising_edge(coreclk);
+	outDataS2 <= outDataS1 when divclkPhase=0 and rising_edge(coreclk);
+	outValidS2 <= outValidS1 when divclkPhase=0 and rising_edge(coreclk);
+
+	outAddr <= outAddrS2 when rising_edge(divclk);
+	outData <= outDataS2 when rising_edge(divclk);
+	outValid <= outValidS2 when rising_edge(divclk);
 end a;

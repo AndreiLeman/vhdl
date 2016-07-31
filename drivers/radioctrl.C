@@ -43,10 +43,12 @@ void delay(u64 ns) {
 	}
 }
 
+int mask=1<<31;
+
 void handleExit(int sig) {
 	//disable device
 	if(gpio!=NULL) {
-		*gpio=0;
+		*gpio &= ~mask;
 	}
 	if(sig!=0) fprintf(stderr,"got signal %d\n",sig);
 	exit(1);
@@ -56,6 +58,8 @@ int main(int argc,char** argv) {
 	//commands:
 	//e		// turn on device
 	//d		// turn off device
+	
+	
 	
 	//should always do this at the beginning of EVERY program you ever write
 	//***************************************
@@ -90,14 +94,14 @@ int main(int argc,char** argv) {
 	u8* hwreg = (u8*)mmap( NULL, HW_REGS_SPAN, ( PROT_READ | PROT_WRITE ), MAP_SHARED, fd, HW_REGS_BASE);
 	u8* lwh2f=hwreg+LWH2F_OFFSET;
 	gpio=(volatile u32*)(lwh2f+PIO_0);
-	*gpio=0;
+	*gpio&=~mask;
 	
 	char cmd=0;
 	//timer_t timerid;
 	while(scanf(" %c",&cmd)>=1) {
 		switch(cmd) {
 			case 'e':
-				*gpio=0xffffffff;
+				*gpio |= mask;
 				/*timerid=0;
 				struct sigevent sev;
 				sev.sigev_notify = SIGEV_SIGNAL;
@@ -107,7 +111,7 @@ int main(int argc,char** argv) {
 				fprintf(stderr,"enabling device\n");
 				break;
 			case 'd':
-				*gpio=0;
+				*gpio &= ~mask;
 				fprintf(stderr,"disabling device\n");
 				break;
 		}

@@ -12,7 +12,8 @@ entity slow_clock is
 			o: out std_logic;
 			rst: in std_logic := '0';
 			phase: out unsigned(integer(ceil(log2(real(divide))))-1 downto 0)
-					:= (others=>'X'));
+					:= (others=>'X');
+			skip: in std_logic := '0');
 end;
 
 architecture a of slow_clock is
@@ -22,7 +23,10 @@ architecture a of slow_clock is
 begin
 	cs <= ns when rising_edge(clk);
 	ns <= to_unsigned(0,b) when rst='1' else
-		cs+1 when cs<(divide-1) else to_unsigned(0,b);
+		cs+2 when cs<(divide-2) and skip='1' else
+		to_unsigned(1,b) when skip='1' else
+		cs+1 when cs<(divide-1) else
+		to_unsigned(0,b);
 	next_out <= '1' when cs<dutycycle else '0';
 	o <= next_out when rising_edge(clk);
 	phase <= cs when rising_edge(clk);

@@ -40,17 +40,30 @@ func mainHandler(w http.ResponseWriter, r *http.Request) {
 			ch <- 30
 		} else if act[0] == "5m" {
 			ch <- 5*60
+		} else if act[0] == "15m" {
+			ch <- 15*60
+		} else if act[0] == "1h" {
+			ch <- 60*60
 		} else {
 			ch <- 0
 		}
 	}
+	fmt.Fprintf(w, "%s\n", `
+	<html>
+	<head>
+		<meta name="viewport" content="width=device-width; initial-scale=2.0; user-scalable=1;" />
+	</head>
+	<body style="line-height: 35px;">
+	`)
 	fmt.Fprintf(w, "<form method=\"post\">\n")
 	fmt.Fprintf(w, "<input type=\"submit\" name=\"act\" value=\"5s\" />\n")
-	fmt.Fprintf(w, "<input type=\"submit\" name=\"act\" value=\"10s\" />\n")
+	fmt.Fprintf(w, "<input type=\"submit\" name=\"act\" value=\"10s\" /><br />\n")
 	fmt.Fprintf(w, "<input type=\"submit\" name=\"act\" value=\"30s\" />\n")
-	fmt.Fprintf(w, "<input type=\"submit\" name=\"act\" value=\"5m\" />\n")
-	fmt.Fprintf(w, "<input type=\"submit\" name=\"act\" value=\"stop\" />\n")
-	fmt.Fprintf(w, "</form>\n")
+	fmt.Fprintf(w, "<input type=\"submit\" name=\"act\" value=\"5m\" /><br />\n")
+	fmt.Fprintf(w, "<input type=\"submit\" name=\"act\" value=\"15m\" />\n")
+	fmt.Fprintf(w, "<input type=\"submit\" name=\"act\" value=\"1h\" /><br />\n")
+	fmt.Fprintf(w, "<input type=\"submit\" name=\"act\" value=\"stop\" /><br />\n")
+	fmt.Fprintf(w, "</form>\n</body>\n</html>")
 }
 func main() {
 	go thread1()

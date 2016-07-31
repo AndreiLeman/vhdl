@@ -1,13 +1,14 @@
 #!/bin/bash
 # usage: $0 (spi|volatile) /dev/ttyXXX
 
-
-XILINX_BIN=/media/user/9cdf347e-3d25-47b7-8615-025afec3f82b/xilinx/14.7/ISE_DS/ISE/bin/lin64/
+if [ "$XILINX_BIN" == "" ]; then
+	XILINX_BIN=/media/user/9cdf347e-3d25-47b7-8615-025afec3f82b/xilinx/14.7/ISE_DS/ISE/bin/lin64/
+fi;
 IMPACT_PATH="$XILINX_BIN"/impact
 PROMGEN_PATH="$XILINX_BIN"/promgen
 TEMP_SVF_PATH=a.svf
 TEMP_MCS_PATH=spiflash.mcs
-BITFILE_PATH=top2.bit
+BITFILE_PATH="$(echo top*.bit)"
 CYCLES_PER_BIT=1
 
 flash_spi() {
@@ -34,6 +35,9 @@ quit
 EOF
 	echo
 }
-
-flash_$1 && /persist/vhdl/drivers/svfplayer -u "$2" "$CYCLES_PER_BIT" < "$TEMP_SVF_PATH"
-
+if [ "$1" == "gensvf" ]; then
+	flash_$2
+	echo "generated $TEMP_SVF_PATH"
+else
+	flash_$1 && /persist/vhdl/drivers/svfplayer -u "$2" "$CYCLES_PER_BIT" < "$TEMP_SVF_PATH"
+fi;

@@ -34,9 +34,11 @@ begin
 	--inferred ram
 	process(rdclk)
 	begin
-		 if(rden='1' and rising_edge(rdclk)) then
-			  tmpdata <= ram1(to_integer(rdaddr));
-		 end if;
+		if rising_edge(rdclk) then
+			if rden='1' then
+				tmpdata <= ram1(to_integer(rdaddr));
+			end if;
+		end if;
 	end process;
 	
 g1:	if outputRegistered generate

@@ -1,0 +1,160 @@
+#include <complex>
+using namespace std;
+typedef complex<double> complexd;
+
+
+static constexpr unsigned char lookup[16] = {
+0x0, 0x8, 0x4, 0xc, 0x2, 0xa, 0x6, 0xe,
+0x1, 0x9, 0x5, 0xd, 0x3, 0xb, 0x7, 0xf, };
+
+// bit-reversals; ripped off of stackoverflow
+uint8_t reverse8(uint8_t n) {
+   // Reverse the top and bottom nibble then swap them.
+   return (lookup[n&0b1111] << 4) | lookup[n>>4];
+}
+uint16_t reverse16(uint16_t n) {
+	return (reverse8((uint8_t)n) << 8) | reverse8(n>>8);
+}
+uint32_t reverse32(uint32_t n) {
+	return (reverse16((uint16_t)n) << 16) | reverse16(n>>16);
+}
+
+// usage:
+// 1. set .arr (you allocate array), .size, and .direction
+// 2. call prepare()
+// 3. call perform() passing in input array
+// 4. use the results in .arr
+// 5. repeat (3) and (4) as necessary
+
+struct fft {
+	complexd* arr;
+	int size; // must be power of 2
+	int direction=1; //1 for forward, -1 for inverse
+	
+	complexd* twiddles;
+	
+	void prepare() {
+		twiddles = new complexd[size];
+		for(int i=0;i<size;i++) {
+			double phase = -double(i)*direction*2*M_PI/size;
+			twiddles[i] = polar(1.d, phase);
+		}
+		//arr = new complexd[size];
+	}
+	void perform(complexd* inp) {
+		rearrange(inp);
+		combineAll();
+	}
+	void combineAll() {
+		int partitionSize=1;
+		combine2Steps(partitionSize);
+		partitionSize*=4;
+		while(partitionSize<size) {
+			if((partitionSize*4) <= size) {
+				combine2Steps(partitionSize);
+				partitionSize*=4;
+			}
+			else {
+				combineStep(partitionSize);
+				partitionSize*=2;
+			}
+		}
+	}
+	void rearrange(complexd* inp) {
+		int order = (int)log2(size);
+		for(int i=0;i<size;i++) {
+			int i2=reverse32(i<<(32-order));
+			arr[i] = inp[i2];
+		}
+	}
+	
+	// input is two subpartitions of size partitionSize, at arr index startIndex
+	// output is one subpartition of size partitionSize*2
+	void combinePartition(int startIndex, int partitionSize) {
+		int size_div_2 = size/2;
+		int twiddleStep = size/2/partitionSize;
+		int twiddleIndex = 0;
+		int index = startIndex;
+		for(int i=0;i<partitionSize;i++) {
+			complexd evenValue = arr[index];
+			complexd oddValue = arr[index+partitionSize];
+			complexd twiddle1 = twiddles[twiddleIndex];
+			complexd twiddle2 = twiddles[twiddleIndex + size_div_2];
+			
+			complexd res1 = evenValue + oddValue*twiddle1;
+			complexd res2 = evenValue + oddValue*twiddle2;
+			arr[index] = res1;
+			arr[index+partitionSize] = res2;
+			twiddleIndex += twiddleStep;
+			index++;
+		}
+	}
+	// input is 4 subpartitions of size partitionSize, at arr index startIndex
+	// output is one subpartition of size partitionSize*4
+	void combinePartition2(int startIndex, int partitionSize) {
+		int size_div_2 = size/2;
+		int size_div_4 = size/4;
+		int twiddleStep = size/2/partitionSize;
+		int StwiddleStep = size/4/partitionSize;
+		int twiddleIndex = 0, StwiddleIndex = 0;
+		int index = startIndex;
+		for(int i=0;i<partitionSize;i++) {
+			complexd evenValueA = arr[index];
+			complexd oddValueA = arr[index+partitionSize];
+			complexd evenValueB = arr[index+partitionSize*2];
+			complexd oddValueB = arr[index+partitionSize*3];
+			complexd twiddle1 = twiddles[twiddleIndex];
+			complexd twiddle2 = twiddles[twiddleIndex + size_div_2];
+			
+			complexd resA1 = evenValueA + oddValueA*twiddle1;
+			complexd resA2 = evenValueA + oddValueA*twiddle2;
+			complexd resB1 = evenValueB + oddValueB*twiddle1;
+			complexd resB2 = evenValueB + oddValueB*twiddle2;
+			
+			
+			complexd Stwiddle1 = twiddles[StwiddleIndex];
+			complexd Stwiddle2 = twiddles[StwiddleIndex + size_div_4];
+			complexd Stwiddle3 = twiddles[StwiddleIndex + size_div_2];
+			complexd Stwiddle4 = twiddles[StwiddleIndex + size_div_2 + size_div_4];
+			
+			
+			complexd SresA1 = resA1 + resB1*Stwiddle1;
+			complexd SresA2 = resA1 + resB1*Stwiddle3;
+			complexd SresB1 = resA2 + resB2*Stwiddle2;
+			complexd SresB2 = resA2 + resB2*Stwiddle4;
+			
+			
+			arr[index] = SresA1;
+			arr[index+partitionSize*2] = SresA2;
+			arr[index+partitionSize] = SresB1;
+			arr[index+partitionSize*3] = SresB2;
+			
+			twiddleIndex += twiddleStep;
+			StwiddleIndex += StwiddleStep;
+			index++;
+		}
+	}
+	void combineStep(int partitionSize) {
+		for(int i=0;i<size;i+=(partitionSize*2)) {
+			combinePartition(i, partitionSize);
+		}
+	}
+	void combine2Steps(int partitionSize) {
+		for(int i=0;i<size;i+=(partitionSize*4)) {
+			combinePartition2(i, partitionSize);
+		}
+	}
+	void combine3Steps(int partitionSize) {
+		for(int i=0;i<size;i+=(partitionSize*8)) {
+			combinePartition(i, partitionSize);
+			combinePartition(i+partitionSize*2, partitionSize);
+			combinePartition(i+partitionSize*4, partitionSize);
+			combinePartition(i+partitionSize*6, partitionSize);
+			
+			combinePartition(i, partitionSize*2);
+			combinePartition(i+partitionSize*4, partitionSize*2);
+			
+			combinePartition(i, partitionSize*4);
+		}
+	}
+};

@@ -1,14 +1,18 @@
 #!/bin/bash
 # usage: $0 (spi|volatile) /dev/ttyXXX
+# or: $0 gensvf (spi|volatile)
+# or: $0 flash_command_serial (spi|volatile) > /dev/ttyXXX
 
 if [ "$XILINX_BIN" == "" ]; then
-	XILINX_BIN=/media/user/9cdf347e-3d25-47b7-8615-025afec3f82b/xilinx/14.7/ISE_DS/ISE/bin/lin64/
+	XILINX_BIN=/persist/xilinx/14.7/ISE_DS/ISE/bin/lin64/
+	#XILINX_BIN=/home/user/r/mnt/xilinx/14.7/ISE_DS/ISE/bin/lin64/
+	#XILINX_BIN=/media/user/9cdf347e-3d25-47b7-8615-025afec3f82b/xilinx/14.7/ISE_DS/ISE/bin/lin64/
 fi;
 IMPACT_PATH="$XILINX_BIN"/impact
 PROMGEN_PATH="$XILINX_BIN"/promgen
 TEMP_SVF_PATH=a.svf
 TEMP_MCS_PATH=spiflash.mcs
-BITFILE_PATH="$(echo top*.bit)"
+BITFILE_PATH="$(echo top2*.bit)"
 CYCLES_PER_BIT=1
 
 flash_spi() {
@@ -37,7 +41,16 @@ EOF
 }
 if [ "$1" == "gensvf" ]; then
 	flash_$2
-	echo "generated $TEMP_SVF_PATH"
+	gzip -c a.svf |base64 >"$TEMP_SVF_PATH".gz.b64
+	echo "generated $TEMP_SVF_PATH and $TEMP_SVF_PATH.gz.b64"
+elif [ "$1" == "flash_command_serial" ]; then
+	flash_$2 >&2 &&
+	gzip -c a.svf |base64 >"$TEMP_SVF_PATH".gz.b64 &&
+
+	echo "cat > a.svf.gz.b64"
+	cat "$TEMP_SVF_PATH".gz.b64
+	echo 04 | xxd -r -p				# send ctrl+d
+	echo "base64 -d a.svf.gz.b64|zcat|./svfplayer 1000"
 else
 	flash_$1 && /persist/vhdl/drivers/svfplayer -u "$2" "$CYCLES_PER_BIT" < "$TEMP_SVF_PATH"
 fi;

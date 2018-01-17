@@ -32,7 +32,7 @@ end ulpi_serial;
 
 architecture a of ulpi_serial is
 	constant RXBUFSIZE_BITS : integer := 12;
-	constant TXBUFSIZE_BITS : integer := 14;
+	constant TXBUFSIZE_BITS : integer := 12;
 	signal ulpi_data_in, ulpi_data_out: std_logic_vector(7 downto 0);
 	signal PHY_DATABUS16_8 : std_logic;
 	signal PHY_RESET :       std_logic;
@@ -103,7 +103,7 @@ begin
 	highspeed <= usb_highspeed;
 	suspend <= usb_suspend;
 	online <= usb_online;
-	txroom <= unsigned(usb_txroom);
+	txroom <= "00"&unsigned(usb_txroom);
 	
 	clkcnt <= clkcnt + 1 when rising_edge(ulpi_clk60);
 	-- Show USB status on LED

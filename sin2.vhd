@@ -80,7 +80,7 @@ begin
 	t2 <= t+"01000000000";
 	lut_addr1 <= t(8 downto 0) when t(9)='0' else not t(8 downto 0);
 	lut_addr2 <= t2(8 downto 0) when t2(9)='0' else not t2(8 downto 0);
-	rom: sin_rom2 port map(lut_addr1,lut_addr2,clk,lut_q1,lut_q2);
+	rom: entity sin_rom2 port map(lut_addr1,lut_addr2,clk,lut_q1,lut_q2);
 	lut_q11 <= lut_q1 when rising_edge(clk);
 	lut_q21 <= lut_q2 when rising_edge(clk);
 	invert1 <= t(10) when rising_edge(clk);
@@ -111,5 +111,5 @@ architecture a of ejxGenerator is
 begin
 	x <= x+freq when rising_edge(clk);
 	t <= x(27 downto 17);
-	rom: ejx port map(clk,t,outp_re,outp_im);
+	rom: entity ejx port map(clk,t,outp_re,outp_im);
 end architecture;

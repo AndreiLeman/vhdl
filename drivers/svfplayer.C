@@ -678,7 +678,7 @@ void executeCommands_soc(const string& buf) {
 	}
 }
 
-void writebuffer_usb(const u8* buf, int len) {
+void writebuffer_serial(const u8* buf, int len, bool readback) {
 	{
 		u8 outbuf[len*2*bitrepeat];
 		for(int i=0;i<len;i++) {
@@ -703,6 +703,7 @@ void writebuffer_usb(const u8* buf, int len) {
 		}
 		assert(write(ttydevice,outbuf,len*2*bitrepeat)==len*2*bitrepeat);
 	}
+	if(!readback) return;
 	u8 inbuf[len];
 	assert(readAll(ttydevice,inbuf,len)==len);
 	for(int i=0;i<len;i++) {
@@ -734,12 +735,14 @@ void writebuffer_usb(const u8* buf, int len) {
 		}
 	}
 }
-void executeCommands_usb(const string& buf) {
+
+// write the commands to a serial device
+void executeCommands_serial(const string& buf, bool readback=true) {
 	int maxbuf=4096;
 	for(int i=0;i<(int)buf.length();i+=maxbuf) {
 		int len=(int)buf.length()-i;
 		if(len>maxbuf) len=maxbuf;
-		writebuffer_usb((u8*)buf.data()+i,len);
+		writebuffer_serial((u8*)buf.data()+i,len,readback);
 	}
 }
 
@@ -758,7 +761,8 @@ void drainfd(int fd) {
 int main(int argc, char** argv) {
 	if(argc<2) {
 	print_usage:
-		fprintf(stderr,"usage: %s (-s CLKPERIOD_NS)|(-u /dev/ttyXXX BITREPEAT)\n-s: SoC mode\n-u: usb mode\n",argv[0]);
+		fprintf(stderr,"usage: %s (-s CLKPERIOD_NS)|(-u /dev/ttyXXX BITREPEAT)|(-r BITREPEAT)\n"
+						"-s: SoC mode\n-u: usb mode\n-r: raw mode (output bitbang data to stdout)\n",argv[0]);
 		return 1;
 	}
 	if(argv[1][0]!='-') goto print_usage;
@@ -797,18 +801,17 @@ int main(int argc, char** argv) {
 			struct termios tc;
 			if (tcgetattr(fd, &tc) < 0) {
 				perror("tcgetattr");
-				exit(1);
-			}
-			tc.c_iflag &= ~(INLCR|IGNCR|ICRNL|IGNBRK|IUCLC|INPCK|ISTRIP|IXON|IXOFF|IXANY);
-			tc.c_oflag &= ~OPOST;
-			tc.c_cflag &= ~(CSIZE|CSTOPB|PARENB|PARODD|CRTSCTS);
-			tc.c_cflag |= CS8 | CREAD | CLOCAL;
-			tc.c_lflag &= ~(ICANON|ECHO|ECHOE|ECHOK|ECHONL|ISIG|IEXTEN);
-			tc.c_cc[VMIN] = 1;
-			tc.c_cc[VTIME] = 0;
-			if (tcsetattr(fd, TCSANOW, &tc) < 0) {
-				perror("tcsetattr");
-				exit(1);
+			} else {
+				tc.c_iflag &= ~(INLCR|IGNCR|ICRNL|IGNBRK|IUCLC|INPCK|ISTRIP|IXON|IXOFF|IXANY);
+				tc.c_oflag &= ~OPOST;
+				tc.c_cflag &= ~(CSIZE|CSTOPB|PARENB|PARODD|CRTSCTS);
+				tc.c_cflag |= CS8 | CREAD | CLOCAL;
+				tc.c_lflag &= ~(ICANON|ECHO|ECHOE|ECHOK|ECHONL|ISIG|IEXTEN);
+				tc.c_cc[VMIN] = 1;
+				tc.c_cc[VTIME] = 0;
+				if (tcsetattr(fd, TCSANOW, &tc) < 0) {
+					perror("tcsetattr");
+				}
 			}
 			ttydevice=fd;
 			
@@ -827,6 +830,17 @@ int main(int argc, char** argv) {
 			assert(read(fd,&tmp,1)==1);
 			assert((tmp&usbtck)!=0);
 			
+			break;
+		}
+		case 'r':
+		{
+			if(argc<3) goto print_usage;
+			bitrepeat=atoi(argv[2]);
+			int fd=1;
+			ttydevice=fd;
+			
+			u8 tmp=usbtck;
+			write(fd,&tmp,1);
 			break;
 		}
 		default:
@@ -857,7 +871,7 @@ int main(int argc, char** argv) {
 		
 		if(argv[1][1]=='s')
 			executeCommands_soc(player.outBuffer);
-		else executeCommands_usb(player.outBuffer);
+		else executeCommands_serial(player.outBuffer, argv[1][1]=='u');
 		player.outBuffer.clear();
 		
 		free(line);

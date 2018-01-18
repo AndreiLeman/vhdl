@@ -34,15 +34,15 @@ struct fft {
 	complexd* twiddles;
 	
 	void prepare() {
-		twiddles = new complexd[size];
-		for(int i=0;i<size;i++) {
+		twiddles = new complexd[size/2];
+		for(int i=0;i<size/2;i++) {
 			double phase = -double(i)*direction*2*M_PI/size;
 			twiddles[i] = polar(1.d, phase);
 		}
 		//arr = new complexd[size];
 	}
 	void perform(complexd* inp) {
-		rearrange(inp);
+		rearrange(inp, arr);
 		combineAll();
 	}
 	void combineAll() {
@@ -60,11 +60,22 @@ struct fft {
 			}
 		}
 	}
-	void rearrange(complexd* inp) {
+	void rearrange(complexd* inp, complexd* outp) {
 		int order = (int)log2(size);
 		for(int i=0;i<size;i++) {
 			int i2=reverse32(i<<(32-order));
-			arr[i] = inp[i2];
+			outp[i2] = inp[i];
+		}
+	}
+	void rearrange(complexd* arr) {
+		int order = (int)log2(size);
+		for(int i=0;i<size;i++) {
+			int i2=reverse32(i<<(32-order));
+			if(i2>i) {
+				complexd tmp = arr[i2];
+				arr[i2] = arr[i];
+				arr[i] = tmp;
+			}
 		}
 	}
 	
@@ -79,10 +90,9 @@ struct fft {
 			complexd evenValue = arr[index];
 			complexd oddValue = arr[index+partitionSize];
 			complexd twiddle1 = twiddles[twiddleIndex];
-			complexd twiddle2 = twiddles[twiddleIndex + size_div_2];
 			
 			complexd res1 = evenValue + oddValue*twiddle1;
-			complexd res2 = evenValue + oddValue*twiddle2;
+			complexd res2 = evenValue - oddValue*twiddle1;
 			arr[index] = res1;
 			arr[index+partitionSize] = res2;
 			twiddleIndex += twiddleStep;
@@ -104,24 +114,20 @@ struct fft {
 			complexd evenValueB = arr[index+partitionSize*2];
 			complexd oddValueB = arr[index+partitionSize*3];
 			complexd twiddle1 = twiddles[twiddleIndex];
-			complexd twiddle2 = twiddles[twiddleIndex + size_div_2];
 			
 			complexd resA1 = evenValueA + oddValueA*twiddle1;
-			complexd resA2 = evenValueA + oddValueA*twiddle2;
+			complexd resA2 = evenValueA - oddValueA*twiddle1;
 			complexd resB1 = evenValueB + oddValueB*twiddle1;
-			complexd resB2 = evenValueB + oddValueB*twiddle2;
-			
+			complexd resB2 = evenValueB - oddValueB*twiddle1;
 			
 			complexd Stwiddle1 = twiddles[StwiddleIndex];
 			complexd Stwiddle2 = twiddles[StwiddleIndex + size_div_4];
-			complexd Stwiddle3 = twiddles[StwiddleIndex + size_div_2];
-			complexd Stwiddle4 = twiddles[StwiddleIndex + size_div_2 + size_div_4];
 			
 			
 			complexd SresA1 = resA1 + resB1*Stwiddle1;
-			complexd SresA2 = resA1 + resB1*Stwiddle3;
+			complexd SresA2 = resA1 - resB1*Stwiddle1;
 			complexd SresB1 = resA2 + resB2*Stwiddle2;
-			complexd SresB2 = resA2 + resB2*Stwiddle4;
+			complexd SresB2 = resA2 - resB2*Stwiddle2;
 			
 			
 			arr[index] = SresA1;

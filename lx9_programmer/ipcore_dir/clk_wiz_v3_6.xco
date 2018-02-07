@@ -1,7 +1,7 @@
 ##############################################################
 #
 # Xilinx Core Generator version 14.7
-# Date: Sat May  7 15:23:34 2016
+# Date: Sun Jun 26 22:40:53 2016
 #
 ##############################################################
 #
@@ -79,17 +79,17 @@ CSET clkout2_requested_phase=0.000
 CSET clkout2_used=true
 CSET clkout3_drives=BUFG
 CSET clkout3_requested_duty_cycle=50.000
-CSET clkout3_requested_out_freq=200
+CSET clkout3_requested_out_freq=225
 CSET clkout3_requested_phase=0.000
 CSET clkout3_used=true
 CSET clkout4_drives=BUFG
 CSET clkout4_requested_duty_cycle=50.000
-CSET clkout4_requested_out_freq=150
+CSET clkout4_requested_out_freq=300
 CSET clkout4_requested_phase=0.000
-CSET clkout4_used=true
+CSET clkout4_used=false
 CSET clkout5_drives=BUFG
 CSET clkout5_requested_duty_cycle=50.000
-CSET clkout5_requested_out_freq=60
+CSET clkout5_requested_out_freq=225
 CSET clkout5_requested_phase=0
 CSET clkout5_used=false
 CSET clkout6_drives=BUFG
@@ -189,7 +189,7 @@ CSET mmcm_notes=None
 CSET mmcm_ref_jitter1=0.010
 CSET mmcm_ref_jitter2=0.010
 CSET mmcm_startup_wait=false
-CSET num_out_clks=4
+CSET num_out_clks=3
 CSET override_dcm=false
 CSET override_dcm_clkgen=false
 CSET override_mmcm=false
@@ -197,22 +197,22 @@ CSET override_pll=false
 CSET platform=lin64
 CSET pll_bandwidth=OPTIMIZED
 CSET pll_clk_feedback=CLKFBOUT
-CSET pll_clkfbout_mult=24
+CSET pll_clkfbout_mult=36
 CSET pll_clkfbout_phase=0.000
 CSET pll_clkin_period=40.000
-CSET pll_clkout0_divide=10
+CSET pll_clkout0_divide=15
 CSET pll_clkout0_duty_cycle=0.500
 CSET pll_clkout0_phase=90.000
-CSET pll_clkout1_divide=2
+CSET pll_clkout1_divide=3
 CSET pll_clkout1_duty_cycle=0.500
 CSET pll_clkout1_phase=0.000
-CSET pll_clkout2_divide=3
+CSET pll_clkout2_divide=4
 CSET pll_clkout2_duty_cycle=0.500
 CSET pll_clkout2_phase=0.000
-CSET pll_clkout3_divide=4
+CSET pll_clkout3_divide=2
 CSET pll_clkout3_duty_cycle=0.500
 CSET pll_clkout3_phase=0.000
-CSET pll_clkout4_divide=10
+CSET pll_clkout4_divide=3
 CSET pll_clkout4_duty_cycle=0.500
 CSET pll_clkout4_phase=0.000
 CSET pll_clkout5_divide=1
@@ -266,4 +266,4 @@ CSET use_status=false
 MISC pkg_timestamp=2012-05-10T12:44:55Z
 # END Extra information
 GENERATE
-# CRC: e3103d88
+# CRC: 201e9ce1

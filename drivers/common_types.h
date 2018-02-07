@@ -4,6 +4,8 @@
 
 typedef unsigned long ul;
 typedef unsigned int ui;
+typedef long long ll;
+typedef unsigned long long ull;
 typedef uint64_t u64;
 typedef uint32_t u32;
 typedef uint16_t u16;

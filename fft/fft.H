@@ -60,6 +60,18 @@ struct fft {
 			}
 		}
 	}
+	void combineAll_dif() {
+		int partitionSize=size/2;
+		while(partitionSize>=1) {
+			if(partitionSize >= 8) {
+				combine3Steps_dif(partitionSize/4);
+				partitionSize /= 8;
+			} else {
+				combineStep_dif(partitionSize);
+				partitionSize /= 2;
+			}
+		}
+	}
 	void rearrange(complexd* inp, complexd* outp) {
 		int order = (int)log2(size);
 		for(int i=0;i<size;i++) {
@@ -161,6 +173,49 @@ struct fft {
 			combinePartition(i+partitionSize*4, partitionSize*2);
 			
 			combinePartition(i, partitionSize*4);
+		}
+	}
+	
+	
+	
+	
+	// output is two subpartitions of size partitionSize, at arr index startIndex
+	// input is one subpartition of size partitionSize*2
+	void combinePartition_dif(int startIndex, int partitionSize) {
+		int size_div_2 = size/2;
+		int twiddleStep = size/2/partitionSize;
+		int twiddleIndex = 0;
+		int index = startIndex;
+		for(int i=0;i<partitionSize;i++) {
+			complexd evenValue = arr[index];
+			complexd oddValue = arr[index+partitionSize];
+			complexd twiddle1 = twiddles[twiddleIndex];
+			
+			complexd res1 = evenValue + oddValue;
+			complexd res2 = (evenValue - oddValue)*twiddle1;
+			arr[index] = res1;
+			arr[index+partitionSize] = res2;
+			twiddleIndex += twiddleStep;
+			index++;
+		}
+	}
+	
+	void combineStep_dif(int partitionSize) {
+		for(int i=0;i<size;i+=(partitionSize*2)) {
+			combinePartition_dif(i, partitionSize);
+		}
+	}
+	void combine3Steps_dif(int partitionSize) {
+		for(int i=0;i<size;i+=(partitionSize*8)) {
+			combinePartition_dif(i, partitionSize*4);
+			
+			combinePartition_dif(i, partitionSize*2);
+			combinePartition_dif(i+partitionSize*4, partitionSize*2);
+			
+			combinePartition_dif(i, partitionSize);
+			combinePartition_dif(i+partitionSize*2, partitionSize);
+			combinePartition_dif(i+partitionSize*4, partitionSize);
+			combinePartition_dif(i+partitionSize*6, partitionSize);
 		}
 	}
 };

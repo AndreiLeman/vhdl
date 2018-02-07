@@ -25,6 +25,8 @@ use UNISIM.VComponents.all;
 
 use work.ulpi_serial;
 use work.slow_clock;
+use work.dsssCode2Combined;
+use work.clkgen_i2c;
 entity top is
 	port(
 		LED: out std_logic_vector(1 downto 0);
@@ -61,7 +63,7 @@ architecture Behavioral of top is
 	signal txroom: unsigned(13 downto 0);
 	signal tmp: unsigned(7 downto 0);
 	--clocks
-	signal CLOCK_60,CLOCK_150,CLOCK_200,CLOCK_300,internalclk: std_logic;
+	signal CLOCK_60,rfClk,CLOCK_300,CLOCK_225,internalclk: std_logic;
 	signal usbclk,dacClk: std_logic;
 	--usb gpios
 	signal gpioout: std_logic_vector(6 downto 0);
@@ -70,6 +72,17 @@ architecture Behavioral of top is
 	
 	--leds
 	signal led_dim,led_usbserial: std_logic;
+	
+	--i2c
+	signal i2c_do_tx,i2cclk: std_logic;
+	signal outscl,outsda: std_logic;
+	
+	-- **temporary add-on: dsss transmitter (code 2)**
+	signal dsssClk: std_logic;
+	signal dsssAddr: unsigned(13 downto 0);
+	signal dsssStream,dsssStream1,dsssModOut: std_logic;
+	
+	signal rfOut: std_logic;
 begin
 	--unused pins
 	DAC_R <= (others=>'0');
@@ -100,12 +113,21 @@ begin
 		CLK_IN1=>CLOCK_25,
 		CLK_OUT1=>CLOCK_60,
 		CLK_OUT2=>CLOCK_300,
-		CLK_OUT3=>CLOCK_200,
-		CLK_OUT4=>CLOCK_150,
+		CLK_OUT3=>CLOCK_225,
 		LOCKED=>open);
+	pll2: entity clk_wiz_v3_6_2 port map(
+		CLK_IN1=>CLOCK_300,
+		CLK_OUT1=>rfClk);
 	usbclk <= CLOCK_60;
 	
+	-- 250kHz state machine clock => 62.5kHz i2c clock
+	i2cc: entity slow_clock generic map(200,100) port map(internalclk,i2cclk);
 	
+	--clockgen i2c
+	i2c1: entity clkgen_i2c port map(i2cclk,outscl,outsda,open,i2c_do_tx);
+	i2c_do_tx <= SW(1);
+	CLKGEN_SCL <= '0' when outscl='0' else 'Z';
+	CLKGEN_SDA <= '0' when outsda='0' else 'Z';
 	
 	-- usb serial port device
 	usbdev: entity ulpi_serial port map(USB_DATA, USB_DIR, USB_NXT,
@@ -131,5 +153,25 @@ begin
 	ledc: entity slow_clock generic map(5000,900) port map(internalclk,led_dim);
 	LED(0) <= led_usbserial and led_dim;
 	LED(1) <= not txrdy;
+	
+	
+	-- **temporary add-on: dsss transmitter (code 2)**
+	dsssc: entity slow_clock generic map(256,128) port map(CLOCK_225,dsssClk);	--0.87890625MHz
+	dsssAddr <= dsssAddr+1 when rising_edge(dsssClk);
+	dsssRom: entity dsssCode2Combined port map(dsssClk,dsssAddr,dsssStream);
+	dsssStream1 <= dsssStream when rising_edge(dsssClk);
+	dsssModOut <= rfClk and (dsssStream1 xor SW(1));
+	rfOut <= dsssModOut when SW(0)='1' else '0';
+	
+	GPIOR <= (
+		0=>rfOut,
+		1=>rfOut,
+		2=>rfOut,
+		4=>not rfOut,
+		3=>not rfOut,
+		5=>not rfOut,
+		others=>'0'
+	);
+	
 end Behavioral;
 

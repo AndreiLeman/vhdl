@@ -15,7 +15,7 @@ use work.dsssCode1;
 use work.dcram;
 use work.generic_bar_display;
 entity dsssTest1Top is
-	port(coreclk,lcdclk,oscDataClk,adcFClk: in std_logic;
+	port(CLOCK_300,coreclk,lcdclk,oscDataClk,adcFClk: in std_logic;
 		oscDataIn: in signed(15 downto 0);
 		adcFiltered2Truncated: in signed(9 downto 0);
 		lcd_scl,lcd_sdi,lcd_cs,lcd_dc,lcd_rst: out std_logic;
@@ -54,6 +54,9 @@ architecture a of dsssTest1Top is
 	signal dsss2Pixel: color;
 	signal dsss2DisplayAddr: unsigned(11 downto 0);
 	signal dsss2DisplayData: std_logic_vector(11 downto 0);
+	
+	--dsss2 (code2)
+	signal dsss2OuterClk,dsss2InnerClk: std_logic;
 begin
 	--lcd display
 	
@@ -85,7 +88,10 @@ begin
 			codeAddr=>codeAddr,code=>code,
 			outValid=>dsssOutValid,outAddr=>dsssOutAddr,outData=>dsssOutData);
 	cg: entity dsssCode1 port map(coreclk,codeAddr,code);	--code is synchronized to accPhase2
-	
+	dsss2ramData <= dsssOutData(16 downto 5)+120; -- when rising_edge(CLOCK_1);
+	dsss2ramAddr <= dsssOutAddr; -- when rising_edge(CLOCK_1);
+	dsss2ramWren <= dsssOutValid; -- when rising_edge(CLOCK_1);
+
 	--correlator output display
 	dsss2ram: entity dcram generic map(width=>12,depthOrder=>9,outputRegistered=>false)
 		port map(rdclk=>lcdClk,wrclk=>dsssDataClk,
@@ -93,10 +99,7 @@ begin
 			rddata=>dsss2DisplayData,
 			wren=>dsss2ramWren,wraddr=>dsss2ramAddr,
 			wrdata=>std_logic_vector(dsss2ramData));
-	dsss2ramData <= dsssOutData(16 downto 5)+120; -- when rising_edge(CLOCK_1);
-	dsss2ramAddr <= dsssOutAddr; -- when rising_edge(CLOCK_1);
-	dsss2ramWren <= dsssOutValid; -- when rising_edge(CLOCK_1);
-
+	
 	bardisp: entity generic_bar_display port map(clk=>lcdClk,
 		W=>to_unsigned(lcdW,12), H=>to_unsigned(lcdH,12), p=>oscPos,
 		outp=>dsss2Pixel,ram_addr=>dsss2DisplayAddr,

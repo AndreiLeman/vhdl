@@ -3,7 +3,7 @@ library work;
 use ieee.numeric_std.all;
 use ieee.std_logic_1164.all;
 -- dual clock dual port ram
--- DELAY: 1 cycle
+-- DELAY: 1 cycle if outputRegistered=false, 2 cycles if outputRegistered=true
 entity dcram is
 	generic(width: integer := 8;
 				-- real depth is 2^depth_order

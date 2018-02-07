@@ -43,7 +43,7 @@ set_global_assignment -name TOP_LEVEL_ENTITY fm_transmitter_soc
 set_global_assignment -name ORIGINAL_QUARTUS_VERSION 13.1
 set_global_assignment -name PROJECT_CREATION_TIME_DATE "17:14:52  APRIL 12, 2014"
 set_global_assignment -name LAST_QUARTUS_VERSION 15.1.1
-set_global_assignment -name PROJECT_OUTPUT_DIRECTORY /mnt/vhdl/fm_transmitter_soc/output_files
+set_global_assignment -name PROJECT_OUTPUT_DIRECTORY /persist/vhdl/fm_transmitter_soc/output_files
 set_global_assignment -name MIN_CORE_JUNCTION_TEMP 0
 set_global_assignment -name MAX_CORE_JUNCTION_TEMP 85
 set_global_assignment -name DEVICE_FILTER_PACKAGE FBGA
@@ -1051,6 +1051,9 @@ set_instance_assignment -name GLOBAL_SIGNAL OFF -to u0|hps_0|hps_io|border|hps_s
 set_instance_assignment -name GLOBAL_SIGNAL OFF -to u0|hps_0|hps_io|border|hps_sdram_inst|p0|umemphy|uread_datapath|reset_n_fifo_wraddress[3]
 set_instance_assignment -name ENABLE_BENEFICIAL_SKEW_OPTIMIZATION_FOR_NON_GLOBAL_CLOCKS ON -to u0|hps_0|hps_io|border|hps_sdram_inst
 set_instance_assignment -name PLL_COMPENSATION_MODE DIRECT -to u0|hps_0|hps_io|border|hps_sdram_inst|pll0|fbout
+
+set_global_assignment -name VHDL_FILE ../dsss_code2.vhd
+set_global_assignment -name VHDL_FILE ../slow_clock.vhd
 set_global_assignment -name SDC_FILE fm_transmitter_soc.out.sdc
 set_global_assignment -name QIP_FILE ../fifo1.qip
 set_global_assignment -name VHDL_FILE ../ass3/I2CTxCu.vhd
@@ -1069,39 +1072,12 @@ set_global_assignment -name VHDL_FILE ../sine_generator.vhd
 set_global_assignment -name VHDL_FILE ../sin.vhd
 set_global_assignment -name VHDL_FILE fm_transmitter_soc.vhd
 set_global_assignment -name VHDL_FILE ../volume_control2.vhd
-set_global_assignment -name QIP_FILE /mnt/vhdl/main_hps/synthesis/main_hps.qip
-set_global_assignment -name VHDL_FILE /mnt/vhdl/interpolator.vhd
-set_global_assignment -name VHDL_FILE /mnt/vhdl/fifo1.vhd
-set_global_assignment -name QIP_FILE /mnt/vhdl/fifo1.qip
-set_global_assignment -name SOURCE_FILE /mnt/vhdl/fifo1.cmp
-set_global_assignment -name VHDL_FILE /mnt/vhdl/osc_ram.vhd
-set_global_assignment -name QIP_FILE /mnt/vhdl/osc_ram.qip
-set_global_assignment -name SOURCE_FILE /mnt/vhdl/osc_ram.cmp
-set_global_assignment -name VHDL_FILE /mnt/vhdl/generic_oscilloscope.vhd
-set_global_assignment -name VHDL_FILE /mnt/vhdl/synchronizer.vhd
-set_global_assignment -name VHDL_FILE /mnt/vhdl/ass3/I2CTxCu.vhd
-set_global_assignment -name VHDL_FILE /mnt/vhdl/ass3/I2CTx.vhd
-set_global_assignment -name VHDL_FILE /mnt/vhdl/ass3/CodecInit.vhd
-set_global_assignment -name VHDL_FILE /mnt/vhdl/ass3/ClockGen.vhd
-set_global_assignment -name VHDL_FILE /mnt/vhdl/ass3/AudTxRx.vhd
-set_global_assignment -name VHDL_FILE /mnt/vhdl/ass3/AudioSubSystemStereo.vhd
-set_global_assignment -name VHDL_FILE /mnt/vhdl/counter.vhd
-set_global_assignment -name VHDL_FILE /mnt/vhdl/config_register.vhd
-set_global_assignment -name VHDL_FILE /mnt/vhdl/delta_sigma.vhd
-set_global_assignment -name VHDL_FILE /mnt/vhdl/delta_sigma_2.vhd
-set_global_assignment -name VHDL_FILE /mnt/vhdl/graphics_types.vhd
-set_global_assignment -name VHDL_FILE /mnt/vhdl/hexdisplay.vhd
-set_global_assignment -name VHDL_FILE /mnt/vhdl/pll.vhd
-set_global_assignment -name VHDL_FILE /mnt/vhdl/ps2_receiver.vhd
-set_global_assignment -name VHDL_FILE /mnt/vhdl/signed_clipper.vhd
-set_global_assignment -name VHDL_FILE /mnt/vhdl/simple_counter.vhd
-set_global_assignment -name VHDL_FILE /mnt/vhdl/vga_fb.vhd
-set_global_assignment -name VHDL_FILE /mnt/vhdl/vga2.vhd
-set_global_assignment -name VHDL_FILE /mnt/vhdl/sinc.vhd
 set_global_assignment -name SIGNALTAP_FILE stp2.stp
 set_global_assignment -name CDF_FILE output_files/Chain3.cdf
-set_global_assignment -name VHDL_FILE /mnt/vhdl/main_hps_interface.vhd
 set_global_assignment -name VHDL_FILE main2.vhd
 set_global_assignment -name CDF_FILE output_files/Chain5.cdf
 set_global_assignment -name CDF_FILE ../fm_transmitter/Chain1.cdf
+set_global_assignment -name CDF_FILE Chain1.cdf
+set_global_assignment -name CDF_FILE output_files/Chain4.cdf
+set_global_assignment -name VHDL_FILE ../dsss_code1.vhd
 set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top

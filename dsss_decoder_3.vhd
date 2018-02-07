@@ -89,7 +89,7 @@ g2: if not preprocess generate
 
 	--increment codeStartPhase every datain cycle
 	codeStartPhaseNext <= codeStartPhase+1;
-	codeStartPhase <= codeStartPhaseNext when rising_edge(divclk);
+	codeStartPhase <= codeStartPhaseNext when divclkPhase=0 and rising_edge(coreclk);
 	
 	--start codePhase at codeStartPhase, and increment every coreclk cycle
 	codePhaseNext <= codeStartPhase when divclkPhase=0 else codePhase+combSeparation;
@@ -150,9 +150,9 @@ g2: if not preprocess generate
 		accWAddr <= ramPos5;
 		accWData <= accSum;
 
-	outAddrS2 <= outAddrS1 when divclkPhase=0 and rising_edge(coreclk);
-	outDataS2 <= outDataS1 when divclkPhase=0 and rising_edge(coreclk);
-	outValidS2 <= outValidS1 when divclkPhase=0 and rising_edge(coreclk);
+	outAddrS2 <= outAddrS1 when divclkPhase=clkDiv/2 and rising_edge(coreclk);
+	outDataS2 <= outDataS1 when divclkPhase=clkDiv/2 and rising_edge(coreclk);
+	outValidS2 <= outValidS1 when divclkPhase=clkDiv/2 and rising_edge(coreclk);
 
 	outAddr <= outAddrS2 when rising_edge(divclk);
 	outData <= outDataS2 when rising_edge(divclk);

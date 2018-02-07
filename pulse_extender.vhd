@@ -46,3 +46,29 @@ g3:if not registered generate
 	end generate;
 end a;
 
+library IEEE;
+use IEEE.STD_LOGIC_1164.ALL;
+use IEEE.NUMERIC_STD.ALL;
+USE ieee.math_real.log2;
+USE ieee.math_real.ceil;
+entity pulseExtenderCounted is
+	generic(extend: integer := 32);
+	Port (clk : in  STD_LOGIC;
+			inp: in std_logic;
+			outp: out std_logic);
+end pulseExtenderCounted;
+
+architecture a of pulseExtenderCounted is
+	constant bits: integer := integer(ceil(log2(real(extend+2))));
+	signal state, stateNext: unsigned(bits-1 downto 0) := (others=>'0');
+	signal outNext: std_logic;
+begin
+	stateNext <= to_unsigned(1, bits) when inp='1' else
+				to_unsigned(0, bits) when state=0 else
+				to_unsigned(0, bits) when state=extend else
+				state+1;
+	state <= stateNext when rising_edge(clk);
+	outNext <= '0' when stateNext=0 else '1';
+	outp <= outNext when rising_edge(clk);
+end a;
+

@@ -2,13 +2,14 @@ library ieee;
 use ieee.numeric_std.all;
 use ieee.std_logic_1164.all;
 use work.simple_altera_pll;
+use work.simple_altera_pll2;
 use work.AudioSubSystemStereo;
 use work.volumeControl2;
 use work.sineGenerator;
 use work.mainHPSInterface;
 use work.hexdisplay;
 use work.slow_clock;
-use work.dsssCode1;
+use work.dsssCode2Combined;
 
 entity fm_transmitter_soc is
 	port(CLOCK_50: in std_logic;
@@ -79,13 +80,19 @@ architecture a of fm_transmitter_soc is
 	signal enc_clk: std_logic;
 	
 	--dsss (testing; experimental)
-	signal dsssClk: std_logic;
-	signal dsssAddr: unsigned(9 downto 0);
-	signal dsssStream,dsssStream1: std_logic;
+	signal CLOCK_225: std_logic;
+	signal dsssClk,dsssSkip: std_logic;
+	signal dsssAddr: unsigned(13 downto 0);
+	signal dsssEnable: std_logic;
+	signal dsssStream,dsssStream1,dsssStream2: std_logic;
 	
 	--UI
 	signal uiClk: std_logic;
 	signal lastk3,lastk2,k3,k2: std_logic;
+	signal blinkCounter: unsigned(24 downto 0);
+	
+	--I/O
+	signal fmOut: unsigned(7 downto 0);
 begin
 	audiopll: simple_altera_pll generic map("50 MHz", "33.868799 MHz", fractional=>"true") port map(CLOCK_50,dacClk);
 	audioCClk <= not audioCClk when rising_edge(dacClk);
@@ -96,9 +103,12 @@ begin
 			AudioInR=>ainR,AudioOutL=>aoutL,AudioOutR=>aoutR,SamClk=>aclk);
 	
 	--UI
+	blinkCounter <= blinkCounter+1 when rising_edge(CLOCK_50);
 	uiClk <= not uiClk when rising_edge(CLOCK_50);
 	useAudioIn <= not useAudioIn when falling_edge(KEY(1));
+	dsssEnable <= not dsssEnable when falling_edge(KEY(0));
 	LEDR(0) <= useAudioIn;
+	LEDR(1) <= dsssEnable and blinkCounter(24);
 	freq_int <= unsigned(SW(9 downto 3));
 	lastk3 <= KEY(3) when rising_edge(uiClk);
 	lastk2 <= KEY(2) when rising_edge(uiClk);
@@ -128,7 +138,8 @@ begin
 	
 	--fm modulator
 	enc_clk <= aclk;
-	pll300: simple_altera_pll generic map("50 MHz","300 MHz", fractional=>"false") port map(CLOCK_50,CLOCK_300);
+	pll300: entity simple_altera_pll2 generic map("50 MHz","300 MHz","225 MHz","false")
+		port map(CLOCK_50,CLOCK_300,CLOCK_225);
 	freq_int1 <= freq_int*to_unsigned(14316558,25);
 	freq_f1 <= freq_f*to_unsigned(1431655,28);
 	freq_sum <= freq_int1+freq_f1;
@@ -143,18 +154,21 @@ begin
 	fm2i <= unsigned(-fm1)+"100000000" when rising_edge(CLOCK_300);
 	
 	--dsss modulator
-	dsssc: entity slow_clock generic map(300,150) port map(CLOCK_300,dsssClk);	--1MHz
+	dsssskipc: entity slow_clock generic map(20000,1) port map(CLOCK_225,dsssSkip);
+	dsssc: entity slow_clock generic map(256,128) port map(CLOCK_225,dsssClk, skip=>dsssSkip);	--0.87890625MHz
 	dsssAddr <= dsssAddr+1 when rising_edge(dsssClk);
-	dsssRom: entity dsssCode1 port map(dsssClk,dsssAddr,dsssStream);
+	dsssRom: entity dsssCode2Combined port map(dsssClk,dsssAddr,dsssStream);
 	dsssStream1 <= dsssStream when rising_edge(CLOCK_300);
+	dsssStream2 <= dsssStream1 when rising_edge(CLOCK_300);
 	
 	--signal outputs
+	fmOut <= fm2(8 downto 1) when dsssStream2='0' or dsssEnable='0' else fm2i(8 downto 1);
 	VGA_SYNC_N <= '0';
 	VGA_BLANK_N <= '1';
-	VGA_R <= fm2(8 downto 1) when rising_edge(CLOCK_300);
+	VGA_R <= fmOut when rising_edge(CLOCK_300);
 	--VGA_G <= "00000000";
-	VGA_G <= fm2(8 downto 1) when rising_edge(CLOCK_300);
-	VGA_B <= fm2(8 downto 1) when rising_edge(CLOCK_300);
+	VGA_G <= fmOut when rising_edge(CLOCK_300);
+	VGA_B <= fmOut when rising_edge(CLOCK_300);
 	VGA_CLK <= CLOCK_300;
 	
 	hps: mainHPSInterface port map(CLOCK_50, HPS_CONV_USB_N,HPS_ENET_INT_N,HPS_ENET_MDIO,
@@ -172,6 +186,6 @@ begin
 			fb_vga_out, "0"&vga_conf, vga_conf,(31 downto 1=>'0'),
 			aclk,hpsAudioL,hpsAudioR,(others=>'0'),'0');
 	--hps I/Os
-	fm_enable <= dsssStream1 and not useAudioIn;
+	fm_enable <= '1'; --not useAudioIn;
 	GPIO_0(31 downto 0) <= pio0data;
 end;

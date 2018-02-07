@@ -50,8 +50,8 @@ begin
 	-- addr    ACK
 		X"17" & "1" &
 	-- data         ACK
-		"00000111" & "1" &	-- 0x17 (feedback)
-		"00000000" & "1" &	-- 0x18 (feedback)
+		"00000110" & "1" &	-- 0x17 (feedback)					2700MHz
+		"11000000" & "1" &	-- 0x18 (feedback)
 		--"00000000" & "0" &	-- 0x19 (feedback fractional)
 		--"00000000" & "0" &	-- 0x1a (feedback fractional)
 		
@@ -73,7 +73,7 @@ begin
 		X"2d" & "1" &
 	-- data         ACK
 		"00000000" & "1" &	-- 0x2d (clock1 divider)
-		"11110000" & "1" &	-- 0x2e (clock1 divider)
+		"11000000" & "1" &	-- 0x2e (clock1 divider)	112.5MHz
 	
 		I2CRESTART_data &
 	-- addr    ACK

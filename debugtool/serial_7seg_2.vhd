@@ -51,7 +51,7 @@ architecture a of serial7seg2 is
 begin
 	phase <= phase+1 when rising_edge(clk);
 	state <= stateNext when phase=1 and rising_edge(clk);
-	stateNext <= "000000" when state=bits+3 else state+1;
+	stateNext <= "000000" when state=bits+6 else state+1;
 	
 	hexSrNext <= data when state=0 else "0" & hexSr(bits-1 downto 1);
 	hexSr <= hexSrNext when phase=0 and rising_edge(clk);
@@ -72,12 +72,12 @@ begin
 	sdi <= outsdi when oe='1' else 'Z';
 	
 	
-	sampleButtons <= '1' when state=bits+2 and phase=1 else '0';
+	sampleButtons <= '1' when state=bits+5 and phase=1 else '0';
 	b1(0) <= not cs when sampleButtons='1' and rising_edge(clk);
 	b1(1) <= not sdi when sampleButtons='1' and rising_edge(clk);
 	b1(2) <= not scl when sampleButtons='1' and rising_edge(clk);
 	
 	b2 <= b1 when sampleButtons='1' and rising_edge(clk);
-	buttons <= b2 when b1=b2 and state=bits+3 and rising_edge(clk);
+	buttons <= b2 when b1=b2 and state=bits+6 and rising_edge(clk);
 end a;
 

@@ -106,7 +106,7 @@ begin
 			CLKOUT3_DIVIDE       => 4,
 			CLKOUT3_PHASE        => 0.000,
 			CLKOUT3_DUTY_CYCLE   => 0.500,
-			CLKOUT4_DIVIDE       => 40,
+			CLKOUT4_DIVIDE       => 128,
 			CLKOUT4_PHASE        => 0.000,
 			CLKOUT4_DUTY_CYCLE   => 0.500,
 			CLKIN_PERIOD         => 40.000,

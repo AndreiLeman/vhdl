@@ -351,9 +351,6 @@ NET "GPIOB[0]" PULLUP;
 
 NET "LVDS_P[0]" LOC = P48;
 NET "LVDS_N[0]" LOC = P47;
-#Created by Constraints Editor (xc6slx9-tqg144-2) - 2016/06/12
-NET "CLOCK_60" TNM_NET = "CLOCK_60";
-TIMESPEC TS_CLOCK_60 = PERIOD "CLOCK_60" 60 MHz HIGH 50%;
 
 
 NET "GPIOR[4]" LOC = P98;
@@ -364,10 +361,38 @@ NET "ANALOG[2]" LOC = P39;
 NET "ADC_STBY" IOSTANDARD = LVCMOS33;
 #Created by Constraints Editor (xc6slx9-tqg144-2) - 2016/06/14
 NET "lcdc/o" TNM_NET = lcdc/o;
-TIMESPEC TS_lcdc_o = PERIOD "lcdc/o" 20 MHz HIGH 50%;
 #Created by Constraints Editor (xc6slx9-tqg144-2) - 2016/06/16
 NET "adc_sc_f/o" TNM_NET = adc_sc_f/o;
-TIMESPEC TS_adc_sc_f_o = PERIOD "adc_sc_f/o" 25 MHz HIGH 43%;
 #Created by Constraints Editor (xc6slx9-tqg144-2) - 2016/06/16
 NET "adc_sc/o" TNM_NET = adc_sc/o;
-TIMESPEC TS_adc_sc_o = PERIOD "adc_sc/o" 75 MHz HIGH 50%;
+#Created by Constraints Editor (xc6slx9-tqg144-2) - 2016/06/24
+NET "dsss_test/sc_outer/cs_0" TNM_NET = dsss_test/sc_outer/cs_0;
+#Created by Constraints Editor (xc6slx9-tqg144-2) - 2016/06/24
+#Created by Constraints Editor (xc6slx9-tqg144-2) - 2016/06/24
+NET "dsss_test/sc_dsss1/o" TNM_NET = dsss_test/sc_dsss1/o;
+#Created by Constraints Editor (xc6slx9-tqg144-2) - 2016/06/30
+#Created by Constraints Editor (xc6slx9-tqg144-2) - 2016/07/03
+#Created by Constraints Editor (xc6slx9-tqg144-2) - 2016/07/03
+TIMESPEC TS_adc_sc_o = PERIOD "adc_sc/o" TS_pll_CLOCK_300u / 4 HIGH 50%;
+TIMESPEC TS_adc_sc_f_o = PERIOD "adc_sc_f/o" TS_pll_CLOCK_300u / 12 HIGH 50%;
+#Created by Constraints Editor (xc6slx9-tqg144-2) - 2016/07/31
+TIMESPEC TS_dsss_test_sc_outer_cs_0 = PERIOD "dsss_test/sc_outer/cs_0" TS_pll_CLOCK_225u / 2 HIGH 50%;
+TIMESPEC TS_dsss_test_sc_dsss1_o = PERIOD "dsss_test/sc_dsss1/o" TS_dsss_test_sc_outer_cs_0 / 128 HIGH 50%;
+#Created by Constraints Editor (xc6slx9-tqg144-2) - 2016/07/31
+NET "fifo*/*pos*" TPTHRU = "fifo_wpos_rpos";
+TIMESPEC TS_fifo_syncs = FROM "adc_sc_f/o" THRU "fifo_wpos_rpos" TO "pll_CLOCK_60u" TIG;
+#Created by Constraints Editor (xc6slx9-tqg144-2) - 2016/08/01
+TIMESPEC TS_lcdc_o = PERIOD "lcdc/o" 20 MHz HIGH 50%;
+#Created by Constraints Editor (xc6slx9-tqg144-2) - 2016/08/01
+#Created by Constraints Editor (xc6slx9-tqg144-2) - 2016/08/01
+TIMESPEC TS_fifo_sync3 = FROM "dsss_test/sc_dsss1/o" THRU "fifo_wpos_rpos" TO "pll_CLOCK_60u" TIG;
+#Created by Constraints Editor (xc6slx9-tqg144-2) - 2016/08/01
+TIMESPEC TS_fifo_sync2 = FROM "pll_CLOCK_60u" THRU "fifo_wpos_rpos" TO "dsss_test/sc_dsss1/o" TIG;
+#Created by Constraints Editor (xc6slx9-tqg144-2) - 2016/08/01
+TIMESPEC TS_fifo_sync4 = FROM "FFS" THRU "fifo_wpos_rpos" TO "FFS" TIG;
+#Created by Constraints Editor (xc6slx9-tqg144-2) - 2016/08/01
+TIMESPEC TS_fuck = FROM "pll_CLOCK_60u" TO "dsss_test/sc_dsss1/o" TIG;
+#Created by Constraints Editor (xc6slx9-tqg144-2) - 2016/08/01
+TIMESPEC TS_fuck2 = FROM "dsss_test/sc_dsss1/o" TO "pll_CLOCK_60u" TIG;
+#Created by Constraints Editor (xc6slx9-tqg144-2) - 2016/08/01
+TIMESPEC TS_fuck3 = FROM "adc_sc_f/o" TO "pll_CLOCK_60u" TIG;

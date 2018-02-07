@@ -123,7 +123,7 @@ NET "USB_DATA[6]" SLEW = FAST;
 NET "USB_DATA[7]" SLEW = FAST;
 #Created by Constraints Editor (xc6slx9-tqg144-2) - 2016/04/24
 NET "CLOCK_25" TNM_NET = "CLOCK_25";
-TIMESPEC TS_CLOCK_25 = PERIOD "CLOCK_25" 30 ns HIGH 50 %;
+TIMESPEC TS_CLOCK_25 = PERIOD "CLOCK_25" 25 MHz HIGH 50%;
 #pin2ucf - Sun Apr 24 15:35:17 2016
 #The following constraints were newly added
 NET "LVDS_N[0]" LOC = P48;
@@ -334,6 +334,10 @@ NET "CLKGEN_MOSFET" LOC = P12;
 NET "CLKGEN_MOSFET" IOSTANDARD = LVCMOS33;
 
 # PlanAhead Generated IO constraints 
-
 NET "GPIOR[7]" PULLUP;
 NET "GPIOR[8]" PULLUP;
+
+
+
+
+PIN "pll2/clkout1_buf.O" CLOCK_DEDICATED_ROUTE = FALSE;

@@ -16,7 +16,9 @@ use work.twiddleGenerator16;
 -- output values are normalized to 1/sqrt(n)
 -- delay is fft4_delay + 16 + mult_delay + fft4_delay cycles
 entity fft16_serial3 is
-	generic(dataBits: integer := 18);
+	generic(dataBits: integer := 18;
+			scale: scalingModes := SCALE_DIV_SQRT_N;
+			round: boolean := true);
 
 	port(clk: in std_logic;
 		din: in complex;
@@ -58,11 +60,11 @@ begin
 			);
 	
 	subFFT1: entity fft4_serial3
-		generic map(dataBits=>dataBits)
+		generic map(dataBits=>dataBits, scale=>scale, round=>round)
 		port map(clk,subIn1,subPhase1,subOut1);
 	
 	subFFT2: entity fft4_serial3
-		generic map(dataBits=>dataBits)
+		generic map(dataBits=>dataBits, scale=>scale, round=>round)
 		port map(clk,subIn2,subPhase2,subOut2);
 	
 	tw: entity twiddleGenerator16 port map(clk, twAddr, twData);

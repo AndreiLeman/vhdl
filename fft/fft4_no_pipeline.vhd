@@ -8,7 +8,9 @@ use work.fft_types.all;
 
 -- values are normalized to sqrt(n)
 entity fft4_noPipeline is
-	generic(dataBits: integer := 18);
+	generic(dataBits: integer := 18;
+			scale: scalingModes := SCALE_DIV_SQRT_N;
+			round: boolean := true);
 	port(din: in complexArray(3 downto 0);
 		dout: out complexArray(3 downto 0)
 		);
@@ -18,6 +20,7 @@ architecture a of fft4_noPipeline is
 	signal a,b: complexArray(3 downto 0);
 	signal resA1, resA2, resB1, resB2: complex;
 	constant mask: integer := to_integer(signed'(dataBits-1 downto 0=>'1'));
+	constant shift: integer := scalingShift(scale, 2);
 begin
 	a <= din;
 	resA1 <= a(0) + a(2);
@@ -32,6 +35,12 @@ begin
 	b(1) <= resA2 - resB2;
 	
 g:	for I in 0 to 3 generate
-		dout(I) <= keepNBits(shift_right(b(I),1), dataBits);
+	g1: if round and (scale /= SCALE_NONE) generate
+			-- add 1 to do rounding instead of truncation
+			dout(I) <= keepNBits(shift_right(b(I) + to_complex(2**(shift-1),2**(shift-1)),shift), dataBits);
+		end generate;
+	g2: if (not round) or scale=SCALE_NONE generate
+			dout(I) <= keepNBits(shift_right(b(I),shift), dataBits);
+		end generate;
 	end generate;
 end a;

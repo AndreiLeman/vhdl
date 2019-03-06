@@ -3,9 +3,16 @@ from math import *
 
 N = 16;
 twiddleBits = 12;
+reducedBits = False;
+# if reducedBits is true, output fits in a twiddleBits bit signed integer.
+# if reducedBits is false, output fits in a twiddleBits+1 bit signed integer.
 
 depthOrder = int(ceil(log(N)/log(2.)));
-scale = (2**(twiddleBits-1))-1;
+scale = (2**(twiddleBits-1));
+if reducedBits:
+	scale -= 1
+else:
+	twiddleBits += 1
 
 fmt = '{0:0' + str(twiddleBits) + 'b}'
 

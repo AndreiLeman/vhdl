@@ -28,9 +28,10 @@ entity transposer is
 		);
 end entity;
 architecture ar of transposer is
-	signal din2: complex;
+	signal din2,dout0: complex;
 	signal iaddr, iaddr2, oaddr: unsigned(N1+N2-1 downto 0);
-	constant myDelays: integer := 2;
+	constant extraRegister: boolean := (N1+N2) > 6;
+	constant myDelays: integer := iif(extraRegister, 3, 2);
 begin
 	-- read side
 	addrGen: entity transposer_addrGen generic map(N1, N2, myDelays)
@@ -38,8 +39,17 @@ begin
 	-- -myDelays cycles
 	
 	ram: entity complexRam generic map(dataBits, N1+N2)
-		port map(clk, clk, oaddr, dout, '1', iaddr2, din2);
+		port map(clk, clk, oaddr, dout0, '1', iaddr2, din2);
 	-- -myDelays+2 cycles
+g1: if extraRegister generate
+		dout <= dout0 when rising_edge(clk);
+		-- -myDelays+3 cycles
+	end generate;
+g2: if not extraRegister generate
+		dout <= dout0;
+		-- -myDelays+2 cycles
+	end generate;
+	
 	
 	-- write side
 	sr1: entity sr_unsigned generic map(N1+N2, myDelays)

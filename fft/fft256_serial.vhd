@@ -14,7 +14,7 @@ use work.transposer;
 -- data input/output order is transposed order: 0,4,8,12,1,5,9,13,...
 -- phase should be 0,1,2,3,4,5,6,...
 -- output values are normalized to 1/sqrt(n)
--- delay is fft4_delay + 16 + mult_delay + fft4_delay cycles
+-- delay is fft16_delay + 256 + mult_delay + 16 + fft16_delay cycles
 entity fft256_serial is
 	generic(dataBits: integer := 24);
 
@@ -66,7 +66,7 @@ begin
 	bitPermOut <= bitPermIn(subSubOrder-1 downto 0) & bitPermIn(bitPermIn'left downto subSubOrder);
 	
 	subFFT1: entity fft16_serial3
-		generic map(dataBits=>dataBits)
+		generic map(dataBits=>dataBits, scale=>SCALE_NONE)
 		port map(clk,subIn1,subPhase1,subOut1);
 	
 	-- sub-fft 2 must accept data in linear order, so we need to transpose the input
@@ -75,7 +75,7 @@ begin
 		port map(clk,subIn2,subPhase2,subTransposedIn2);
 	
 	subFFT2: entity fft16_serial3
-		generic map(dataBits=>dataBits)
+		generic map(dataBits=>dataBits, scale=>SCALE_DIV_N)
 		port map(clk,subTransposedIn2,subPhase2,subOut2);
 	
 	tw: entity twiddleGenerator generic map(twiddleBits, order)

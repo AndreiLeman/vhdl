@@ -36,6 +36,10 @@ package fft_types is
 	function complex_str(val: complex) return String;
 	
 	function iif(Cond: BOOLEAN; If_True, If_False: integer) return integer;
+	
+	type scalingModes is (SCALE_DIV_N, SCALE_DIV_SQRT_N, SCALE_NONE);
+	
+	function scalingShift(scale: scalingModes; order: integer) return integer;
 end package;
 
 package body fft_types is
@@ -204,6 +208,17 @@ package body fft_types is
 		end if;
 	end function iif;
 	
+	
+	function scalingShift(scale: scalingModes; order: integer) return integer is
+	begin
+		if scale=SCALE_DIV_N then
+			return order;
+		elsif scale=SCALE_DIV_SQRT_N then
+			return order/2;
+		else
+			return 0;
+		end if;
+	end function;
 	
 
 end package body;

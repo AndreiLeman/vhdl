@@ -6,10 +6,14 @@ use work.fft_types.all;
 
 -- read delay is 6 cycles
 
+-- if reducedBits is false, output will fit in a twiddleBits+1 bit signed
+-- 2's complement integer. if reducedBits is true, output will fit in
+-- a twiddleBits bit signed 2's complement integer.
 entity twiddleGenerator is
 	generic(twiddleBits: integer := 8;
 				-- real depth is 2^depth_order
-				depthOrder: integer := 9);
+				depthOrder: integer := 9;
+				reducedBits: boolean := false);
 	port(clk: in std_logic;
 			-- read side; synchronous to rdclk
 			rdAddr: in unsigned(depthOrder-1 downto 0);
@@ -27,6 +31,7 @@ architecture a of twiddleGenerator is
 	constant romDepth: integer := 2**romDepthOrder;
 	constant romWidth: integer := (twiddleBits-1)*2;
 	
+	constant one: integer := iif(reducedBits, (2**(twiddleBits-1))-1, (2**(twiddleBits-1)));
 	
 	signal romAddr0,romAddrNext: unsigned(romDepthOrder-1 downto 0) := (others=>'0');
 	signal phase,phase1,phase2,phase3: unsigned(depthOrder-1 downto 0) := (others=>'0');
@@ -52,7 +57,7 @@ begin
 	phase2 <= phase1 when rising_edge(clk);
 	-- 3 cycles
 	
-	re0 <= (2**(twiddleBits-1))-1 when phase2(depthOrder-3 downto 0)=0 else
+	re0 <= one when phase2(depthOrder-3 downto 0)=0 else
 		to_integer(unsigned(romData(twiddleBits-2 downto 0)));
 	im0 <= 0 when phase2(depthOrder-3 downto 0)=0 else
 		to_integer(unsigned(romData(romData'left downto twiddleBits-1)));

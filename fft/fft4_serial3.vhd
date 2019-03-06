@@ -19,7 +19,9 @@ use work.fft4_noPipeline;
 
 entity fft4_serial3 is
 	generic(dataBits: integer := 18;
-			bitReversedOrder: boolean := false);
+			bitReversedOrder: boolean := false;
+			scale: scalingModes := SCALE_DIV_SQRT_N;
+			round: boolean := true);
 
 	port(clk: in std_logic;
 		din: in complex;
@@ -53,7 +55,8 @@ g2: if not bitReversedOrder generate
 		fftOut0 <= fftOut0_reordered;
 	end generate;
 	
-	fft1: entity fft4_noPipeline generic map(dataBits)
+	fft1: entity fft4_noPipeline
+		generic map(dataBits=>dataBits, scale=>scale, round=>round)
 		port map(fftIn_mCycle_reordered, fftOut0_reordered);
 	fftOut_mCycle <= fftOut0 when phase=0 and rising_edge(clk);
 	-- 9 cycles

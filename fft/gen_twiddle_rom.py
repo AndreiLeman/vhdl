@@ -1,13 +1,13 @@
 #!/usr/bin/python
 from math import *
 
-N = 256;
-width = 12;
+N = 4096;
+width = 16;
 
 size = N/8;
 romDepthOrder = int(ceil(log(size)/log(2.)));
 romWidth = width - 1;
-scale = (2**romWidth)-1;
+scale = (2**romWidth);
 
 fmt = '{0:0' + str(romWidth) + 'b}'
 name = 'twiddleRom'+str(N)
@@ -49,6 +49,12 @@ for i in xrange(size):
 	
 	re1 = int(round(re*scale));
 	im1 = int(round(im*scale));
+	
+	if re1 >= scale: re1 = scale - 1
+	if im1 >= scale: im1 = scale - 1
+	
+	#assert re1 < scale;
+	#assert im1 < scale;
 	
 	if i != 0:
 		print ',',

@@ -136,11 +136,15 @@ architecture a of cic_lpf_2_d is
 	signal integrators: tmp_t;
 	signal differentiators: tmp_t;
 begin
-	assert gain<=allowed_gain
-		report "a bit growth of "&INTEGER'IMAGE(bitGrowth)
-			&" will only allow a gain of"&INTEGER'IMAGE(allowed_gain)
-			&", but gain (bw_div^stages) is "&INTEGER'IMAGE(gain)
-			 severity error;
+g0:
+	if gain>allowed_gain generate
+		assert gain<=allowed_gain
+			report "a bit growth of "&INTEGER'IMAGE(bitGrowth)
+				&" will only allow a gain of"&INTEGER'IMAGE(allowed_gain)
+				&", but gain (bw_div^stages) is "&INTEGER'IMAGE(gain)
+				 severity error;
+		dout <= "000";
+	end generate;
 
 g1:	for I in 1 to stages generate
 		integ: entity cic_integrator generic map(outbits,outbits)

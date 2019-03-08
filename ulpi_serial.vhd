@@ -6,6 +6,7 @@ use work.usb_serial;
 
 -- simple usb-serial device
 entity ulpi_serial is
+	generic(minTxSize: integer := 1);
 	Port (
 		ulpi_data  : inout  std_logic_vector(7 downto 0);
 		ulpi_dir      : in  std_logic;
@@ -26,13 +27,14 @@ entity ulpi_serial is
 		reset: in std_logic := '0';
 		highspeed,suspend,online: out std_logic := 'X';
 		LED: out std_logic := 'X';
-		txroom: out unsigned(13 downto 0)
+		txroom: out unsigned(13 downto 0);
+		inhibitCork: in std_logic := '0'
 	);
 end ulpi_serial;
 
 architecture a of ulpi_serial is
-	constant RXBUFSIZE_BITS : integer := 12;
-	constant TXBUFSIZE_BITS : integer := 12;
+	constant RXBUFSIZE_BITS : integer := 10;
+	constant TXBUFSIZE_BITS : integer := 14;
 	signal ulpi_data_in, ulpi_data_out: std_logic_vector(7 downto 0);
 	signal PHY_DATABUS16_8 : std_logic;
 	signal PHY_RESET :       std_logic;
@@ -52,6 +54,8 @@ architecture a of ulpi_serial is
 	signal usb_suspend,usb_online,usb_highspeed: std_logic;
 	signal clkcnt : unsigned(24 downto 0);
 	signal usb_txroom: std_logic_vector(TXBUFSIZE_BITS-1 downto 0);
+	
+	signal txcork2: std_logic;
 begin
 	adaptor: entity ulpi_port port map(ulpi_data_in,ulpi_data_out,ulpi_dir,
 		ulpi_nxt,ulpi_stp,ulpi_reset,ulpi_clk60,
@@ -64,9 +68,11 @@ begin
 	
 	usb_serial_inst : entity usb_serial
 	generic map (
-		VENDORID        => X"fb9a",
-		PRODUCTID       => X"fb9a",
-		VERSIONBCD      => X"0031",
+		VENDORID        => X"04b4",
+		PRODUCTID       => X"0008",
+		VERSIONBCD      => X"0001",
+		VENDORSTR		=> "xaxaxa Development Ltd",
+		PRODUCTSTR		=> "Device 1",
 		HSSUPPORT       => true,
 		SELFPOWERED     => false,
 		RXBUFSIZE_BITS  => RXBUFSIZE_BITS,
@@ -86,7 +92,7 @@ begin
 		TXDAT           => txdat,
 		TXRDY           => txrdy,
 		TXROOM          => usb_txroom,
-		TXCORK          => txcork,
+		TXCORK          => (txcork or txcork2),
 		PHY_DATAIN      => PHY_DATAIN,
 		PHY_DATAOUT     => PHY_DATAOUT,
 		PHY_TXVALID     => PHY_TXVALID,
@@ -103,7 +109,16 @@ begin
 	highspeed <= usb_highspeed;
 	suspend <= usb_suspend;
 	online <= usb_online;
-	txroom <= "00"&unsigned(usb_txroom);
+	txroom <= unsigned(usb_txroom);
+
+g:
+	if minTxSize < 2 generate
+		txcork2 <= '0';
+	end generate;
+g2:
+	if minTxSize >= 2 generate
+		txcork2 <= '0' when unsigned(usb_txroom)<((2**TXBUFSIZE_BITS)-minTxSize) or inhibitCork='1' else '1';
+	end generate;
 	
 	clkcnt <= clkcnt + 1 when rising_edge(ulpi_clk60);
 	-- Show USB status on LED

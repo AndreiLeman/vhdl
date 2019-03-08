@@ -1,0 +1,34 @@
+#IncludeRegexLine: ^[ 	]*#[ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/persist/vhdl/lx9/sdr4/gr-xaxaxa/lib/qa_xaxaxa.cc
+qa_xaxaxa.h
+/persist/vhdl/lx9/sdr4/gr-xaxaxa/lib/qa_xaxaxa.h
+
+/persist/vhdl/lx9/sdr4/gr-xaxaxa/lib/qa_xaxaxa.h
+gnuradio/attributes.h
+-
+cppunit/TestSuite.h
+-
+
+/persist/vhdl/lx9/sdr4/gr-xaxaxa/lib/test_xaxaxa.cc
+config.h
+/persist/vhdl/lx9/sdr4/gr-xaxaxa/lib/config.h
+cppunit/TextTestRunner.h
+-
+cppunit/XmlOutputter.h
+-
+gnuradio/unittests.h
+-
+qa_xaxaxa.h
+/persist/vhdl/lx9/sdr4/gr-xaxaxa/lib/qa_xaxaxa.h
+iostream
+-
+fstream
+-
+

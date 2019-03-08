@@ -1,0 +1,10 @@
+#IncludeRegexLine: ^[ 	]*#[ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/persist/vhdl/lx9/sdr4/gr-xaxaxa/build/swig/xaxaxa_swig_swig_2d0df.cpp
+

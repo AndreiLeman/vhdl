@@ -143,8 +143,5 @@ _xmsgs/
 /drivers/adc_alignment_test
 /drivers/adc_checksum_test
 /fft/bit_permutor.vhd
-/fft/fft*_generated.vhd
-/fft/fft256_test1.vhd
 /fft/fft4096_serial.vhd
 /fft/fft_butterfly4.vhd
-/fft/twiddle_rom*.vhd

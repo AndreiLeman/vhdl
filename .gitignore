@@ -62,6 +62,36 @@ hps_rewire_uart/*
 *.in
 *.xreport
 */planAhead_run*
+planAhead_*
+ipcore_dir/*/*
+
+
+
+# iMPACT generated files
+_impactbatch.log
+impact.xsl
+impact_impact.xwbt
+ise_impact.cmd
+webtalk_impact.xml
+
+# Core Generator generated files
+xaw2verilog.log
+
+# project-wide generated files
+*.gise
+par_usage_statistics.html
+usage_statistics_webtalk.html
+webtalk.log
+webtalk_pn.xml
+
+# generated folders
+iseconfig/
+xlnx_auto_0_xdb/
+xst/
+_ngo/
+_xmsgs/
+
+
 *.bit
 *.xdc
 *.xsl
@@ -112,3 +142,9 @@ hps_rewire_uart/*
 /drivers/usb_recv_gpio_1
 /drivers/adc_alignment_test
 /drivers/adc_checksum_test
+/fft/bit_permutor.vhd
+/fft/fft*_generated.vhd
+/fft/fft256_test1.vhd
+/fft/fft4096_serial.vhd
+/fft/fft_butterfly4.vhd
+/fft/twiddle_rom*.vhd

@@ -3,8 +3,9 @@ library work;
 use ieee.numeric_std.all;
 use ieee.std_logic_1164.all;
 use work.fft_types.all;
+use work.sr_unsigned;
 
--- read delay is 6 cycles
+-- read delay is 5+romDelay cycles
 
 -- if reducedBits is false, output will fit in a twiddleBits+1 bit signed
 -- 2's complement integer. if reducedBits is true, output will fit in
@@ -13,6 +14,7 @@ entity twiddleGenerator is
 	generic(twiddleBits: integer := 8;
 				-- real depth is 2^depth_order
 				depthOrder: integer := 9;
+				romDelay: integer := 2;
 				reducedBits: boolean := false);
 	port(clk: in std_logic;
 			-- read side; synchronous to rdclk
@@ -33,9 +35,11 @@ architecture a of twiddleGenerator is
 	
 	constant one: integer := iif(reducedBits, (2**(twiddleBits-1))-1, (2**(twiddleBits-1)));
 	
+	signal romData1: std_logic_vector(twiddleBits*2-3 downto 0);
 	signal romAddr0,romAddrNext: unsigned(romDepthOrder-1 downto 0) := (others=>'0');
 	signal phase,phase1,phase2,phase3: unsigned(depthOrder-1 downto 0) := (others=>'0');
 	signal ph3,ph4: unsigned(2 downto 0) := (others=>'0');
+	signal isZero,isZeroNext: std_logic;
 	
 	signal re,im,re0,im0, re_P, re_M, im_P, im_M: integer;
 	signal outData: complex;
@@ -52,27 +56,32 @@ begin
 	romAddr <= romAddr0;
 	-- 1 cycles
 	
-	-- external rom latency is 2 cycles
-	phase1 <= phase when rising_edge(clk);
+	-- external rom latency is romDelay cycles
+	--phase2 <= phase-(romDelay-1) when rising_edge(clk);
+	sr: entity sr_unsigned generic map(depthOrder, romDelay)
+		port map(clk, phase, phase1);
 	phase2 <= phase1 when rising_edge(clk);
-	-- 3 cycles
+	isZeroNext <= '1' when phase1(depthOrder-3 downto 0)=0 else '0';
+	isZero <= isZeroNext when rising_edge(clk);
+	romData1 <= romData when rising_edge(clk);
+	-- 2+romDelay cycles; isZero is aligned with phase2 and romData1
 	
-	re0 <= one when phase2(depthOrder-3 downto 0)=0 else
-		to_integer(unsigned(romData(twiddleBits-2 downto 0)));
-	im0 <= 0 when phase2(depthOrder-3 downto 0)=0 else
-		to_integer(unsigned(romData(romData'left downto twiddleBits-1)));
+	re0 <= one when isZero='1' else
+		to_integer(unsigned(romData1(twiddleBits-2 downto 0)));
+	im0 <= 0 when isZero='1' else
+		to_integer(unsigned(romData1(romData1'left downto twiddleBits-1)));
 	re <= re0 when rising_edge(clk);
 	im <= im0 when rising_edge(clk);
 	phase3 <= phase2 when rising_edge(clk);
 	ph3 <= phase3(phase3'left downto phase3'left-2);
-	-- 4 cycles
+	-- 3+romDelay cycles
 	
 	re_P <= re when rising_edge(clk);
 	re_M <= -re when rising_edge(clk);
 	im_P <= im when rising_edge(clk);
 	im_M <= -im when rising_edge(clk);
 	ph4 <= ph3 when rising_edge(clk);
-	-- 5 cycles
+	-- 4+romDelay cycles
 	
 	outData <= to_complex(re_P,im_P)	when ph4=0 else
 				to_complex(im_P,re_P)	when ph4=1 else
@@ -83,5 +92,5 @@ begin
 				to_complex(im_P,re_M)	when ph4=6 else
 				to_complex(re_P,im_M); --when ph4=7;
 	rdData <= outData when rising_edge(clk);
-	-- 6 cycles
+	-- 5+romDelay cycles
 end a;

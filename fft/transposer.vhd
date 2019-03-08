@@ -5,8 +5,6 @@ use ieee.std_logic_1164.all;
 USE ieee.math_real.log2;
 USE ieee.math_real.ceil;
 use work.fft_types.all;
-use work.fft4_serial;
---use work.fft4_serial2;
 use work.sr_unsigned;
 use work.complexRam;
 use work.twiddleGenerator;
@@ -30,7 +28,7 @@ end entity;
 architecture ar of transposer is
 	signal din2,dout0: complex;
 	signal iaddr, iaddr2, oaddr: unsigned(N1+N2-1 downto 0);
-	constant extraRegister: boolean := (N1+N2) > 6;
+	constant extraRegister: boolean := (N1+N2) > 4;
 	constant myDelays: integer := iif(extraRegister, 3, 2);
 begin
 	-- read side

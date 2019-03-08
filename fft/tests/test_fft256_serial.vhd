@@ -19,7 +19,7 @@ architecture behaviour of test_fft256_serial is
 	signal phase: unsigned(7 downto 0);
 	signal dout: complex;
 	signal debug1: integer;
-	constant delay: integer := 462;
+	constant delay: integer := 394;
 begin
 	
 	fft: entity fft256_generated port map(
@@ -68,8 +68,14 @@ begin
 			
 -- data input bit order: (7 downto 0) [1,0,7,6,5,4,3,2]
 -- data output bit order: (7 downto 0) [1,0,3,2,5,4,7,6]
-			inputPerm := ii(1)&ii(0)&ii(7)&ii(6)&ii(5)&ii(4)&ii(3)&ii(2);
-			outputPerm := oi(1)&oi(0)&oi(3)&oi(2)&oi(5)&oi(4)&oi(7)&oi(6);
+			--inputPerm := ii(1)&ii(0)&ii(7)&ii(6)&ii(5)&ii(4)&ii(3)&ii(2);
+			--outputPerm := oi(1)&oi(0)&oi(3)&oi(2)&oi(5)&oi(4)&oi(7)&oi(6);
+			
+-- data input bit order: (7 downto 0) [0,1,3,2,7,6,5,4]
+-- data output bit order: (7 downto 0) [0,1,2,3,4,5,6,7]
+			inputPerm := ii(0)&ii(1)&ii(3)&ii(2)&ii(7)&ii(6)&ii(5)&ii(4);
+			outputPerm := oi(0)&oi(1)&oi(2)&oi(3)&oi(4)&oi(5)&oi(6)&oi(7);
+			
 			
 			i1 := to_integer(inputPerm) + i2*256;
 			

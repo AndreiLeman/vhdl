@@ -5,9 +5,6 @@ use ieee.std_logic_1164.all;
 USE ieee.math_real.log2;
 USE ieee.math_real.ceil;
 use work.fft_types.all;
-use work.fft4_serial;
-use work.fft4_serial2;
-use work.fft4_serial3;
 use work.sr_unsigned;
 use work.complexRam;
 use work.twiddleGenerator;
@@ -31,7 +28,7 @@ entity fft3step_bram_generic2 is
 	generic(dataBits: integer := 18;
 			twiddleBits: integer := 12;
 			subOrder1,subOrder2: integer := 4;
-			twiddleDelay: integer := 6;
+			twiddleDelay: integer := 7;
 			subDelay1,subDelay2: integer := 11;
 			multDelay: integer := 6;
 			customSubOrder: boolean := false

@@ -5,7 +5,6 @@ use ieee.std_logic_1164.all;
 USE ieee.math_real.log2;
 USE ieee.math_real.ceil;
 use work.fft_types.all;
-use work.fft4;
 use work.fft4_noPipeline;
 
 -- data appears 11 cycles after the first input word

@@ -12,15 +12,17 @@ def bitOrderDescription(bitOrder):
 	listStr = ','.join([str(x) for x in reversed(bitOrder)])
 	return '(%d downto 0) [%s]' % (len(bitOrder)-1, listStr)
 
-def bitOrderToVHDL(bitOrder, srcSignal):
-	fmt = srcSignal + '(%d)'
-	return '&'.join([fmt % i for i in bitOrder[::-1]])
-
 def bitOrderIsNatural(bitOrder):
 	for i in xrange(len(bitOrder)):
 		if bitOrder[i] != i:
 			return False
 	return True
+
+def bitOrderToVHDL(bitOrder, srcSignal):
+	if bitOrderIsNatural(bitOrder):
+		return srcSignal
+	fmt = srcSignal + '(%d)'
+	return '&'.join([fmt % i for i in bitOrder[::-1]])
 
 def bitOrderNTimes(bitOrder, n):
 	res = range(len(bitOrder))
@@ -77,11 +79,12 @@ class BitPermutation:
 		return 0
 
 class FFTBase:
-	def __init__(self, N, entity, scale):
+	def __init__(self, N, entity, scale, delay1=11):
 		self.N = N
 		self.isBase = True
 		self.entity = entity
 		self.scale = scale
+		self.delay1 = delay1
 		self.dataBits = 'dataBits'
 		self.imports = [entity]
 
@@ -129,7 +132,7 @@ signal {0:s}phase: unsigned({1:d}-1 downto 0);'''.format(id, myLog2(self.N))
 					id, id, id);
 
 	def delay(self):
-		return 11
+		return self.delay1
 
 class FFTConfiguration:
 	def __init__(self, N, sub1, sub2, twiddleBits=12):
@@ -144,7 +147,7 @@ class FFTConfiguration:
 		
 		if N > 32:
 			self.simpleTwiddleRom = False
-			self.twiddleDelay = 6
+			self.twiddleDelay = 7
 			self.imports = ['twiddleRom%d' % N]
 		else:
 			self.simpleTwiddleRom = True
@@ -177,8 +180,8 @@ class FFTConfiguration:
 		O1 = myLog2(self.sub1.N)
 		O2 = myLog2(self.sub2.N)
 		
-		tmp = [x+O2 for x in self.sub1.inputBitOrder()]
-		tmp += self.sub2.inputBitOrder()
+		tmp = [x+O2 for x in self.sub1.outputBitOrder()]
+		tmp += self.sub2.outputBitOrder()
 		return tmp
 	
 	def sigIn(self, id):
@@ -229,7 +232,7 @@ signal {0:s}rbInPhase: unsigned({2:s}order-1 downto 0);
 		return signals
 		
 	def genBody(self, id, subId1, subId2):
-		bOrder1 = bitOrderToVHDL(self.sub1.inputBitOrder(), id + 'bitPermIn')
+		bOrder1 = bitOrderToVHDL(self.sub1.outputBitOrder(), id + 'bitPermIn')
 		
 		sub2in = self.sub2.sigIn(subId2)
 		sub2phase = self.sub2.sigPhase(subId2)
@@ -243,7 +246,7 @@ signal {0:s}rbInPhase: unsigned({2:s}order-1 downto 0);
 		#         0     1       2       3       4             5       6        7
 		params = [id, subId1, subId2, sub2in, sub2delay, sub2phase, bOrder1, self.N]
 		body = '''
-{0:s}core: entity fft3step_bram_generic2
+{0:s}core: entity fft3step_bram_generic3
 	generic map(
 		dataBits=>dataBits,
 		twiddleBits=>{0:s}twiddleBits,
@@ -254,13 +257,16 @@ signal {0:s}rbInPhase: unsigned({2:s}order-1 downto 0);
 		subDelay2=>{4:d},
 		customSubOrder=>true)
 	port map(
-		clk=>clk, din=>{0:s}in, phase=>{0:s}phase, dout=>{0:s}out, phaseOut=>open,
-		subIn1=>{1:s}in, subIn2=>{3:s},
-		subPhase1=>{1:s}phase, subPhase2=>{5:s},
-		subOut1=>{1:s}out, subOut2=>{2:s}out,
+		clk=>clk, phase=>{0:s}phase, phaseOut=>open,
+		subOut1=>{1:s}out,
+		subIn2=>{3:s},
+		subPhase2=>{5:s},
 		twAddr=>{0:s}twAddr, twData=>{0:s}twData,
 		bitPermIn=>{0:s}bitPermIn, bitPermOut=>{0:s}bitPermOut);
 	
+{1:s}in <= {0:s}in;
+{0:s}out <= {2:s}out;
+{1:s}phase <= {0:s}phase({1:s}order-1 downto 0);
 {0:s}bitPermOut <= {6:s};
 '''
 		
@@ -352,7 +358,7 @@ use ieee.std_logic_1164.all;
 USE ieee.math_real.log2;
 USE ieee.math_real.ceil;
 use work.fft_types.all;
-use work.fft3step_bram_generic2;
+use work.fft3step_bram_generic3;
 use work.twiddleGenerator;
 use work.transposer;
 use work.reorderBuffer;
@@ -401,10 +407,29 @@ end ar;
 	return code
 
 
+#fft2_scale_none = FFTBase(2, 'fft2_serial2', 'SCALE_NONE', 3)
+#fft2_scale_div_n = FFTBase(2, 'fft2_serial2', 'SCALE_DIV_N', 3)
+
+fft2_scale_none = FFTBase(2, 'fft2_serial', 'SCALE_NONE', 6)
+fft2_scale_div_n = FFTBase(2, 'fft2_serial', 'SCALE_DIV_N', 6)
+
+
+fft4_scale_none = FFTConfiguration(4, fft2_scale_none, fft2_scale_none);
+fft4_scale_div_n = FFTConfiguration(4, fft2_scale_div_n, fft2_scale_div_n);
+
+
+fft4_large_scale_none = FFTBase(4, 'fft4_serial3', 'SCALE_NONE', 11)
+fft4_large_scale_div_n = FFTBase(4, 'fft4_serial3', 'SCALE_DIV_N', 11)
+
+
+
 fft16 = \
 	FFTConfiguration(16, 
 		FFTBase(4, 'fft4_serial3', 'SCALE_NONE'),
 		FFTBase(4, 'fft4_serial3', 'SCALE_DIV_N'));
+
+fft16_scale_none = FFTConfiguration(16,  fft4_large_scale_none, fft4_scale_none);
+fft16_scale_div_n = FFTConfiguration(16,  fft4_scale_div_n, fft4_large_scale_div_n);
 
 fft64 = \
 	FFTConfiguration(64,
@@ -412,6 +437,13 @@ fft64 = \
 			FFTBase(4, 'fft4_serial3', 'SCALE_NONE'),
 			FFTBase(4, 'fft4_serial3', 'SCALE_DIV_SQRT_N')),
 		FFTBase(4, 'fft4_serial3', 'SCALE_DIV_N'));
+
+
+fft64_scale_none = FFTConfiguration(64, fft16_scale_none, fft4_scale_none);
+fft64_scale_div_n = FFTConfiguration(64, fft16_scale_div_n, fft4_scale_div_n);
+
+
+
 
 fft256 = \
 	FFTConfiguration(256,
@@ -439,6 +471,17 @@ fft256_3 = \
 				FFTBase(4, 'fft4_serial3', 'SCALE_NONE'),
 				FFTBase(4, 'fft4_serial3', 'SCALE_DIV_N')),
 			FFTBase(4, 'fft4_serial3', 'SCALE_DIV_N')));
+
+
+fft256_4 = \
+	FFTConfiguration(256,
+		FFTConfiguration(16, 
+			fft4_scale_none,
+			fft4_scale_none),
+		FFTConfiguration(16, 
+			fft4_scale_div_n,
+			fft4_scale_div_n));
+
 
 
 fft1024 = \
@@ -482,6 +525,24 @@ fft4096 = \
 		16); # twiddleBits
 
 
+fft4096_2 = \
+	FFTConfiguration(4096,
+		fft64_scale_none,
+		fft64_scale_div_n,
+		16); # twiddleBits
+
+
+fft4096_2 = \
+	FFTConfiguration(4096,
+		FFTConfiguration(64,
+			FFTConfiguration(16,  fft4_scale_none, fft4_large_scale_none),
+			fft4_scale_none),
+		FFTConfiguration(64, 
+			FFTConfiguration(16,  fft4_large_scale_div_n, fft4_scale_div_n),
+			fft4_scale_div_n),
+		16); # twiddleBits
+
+
 #print fft256.inputBitOrder()
 #print fft256.outputBitOrder()
 
@@ -490,5 +551,6 @@ fft4096 = \
 
 #print fft4096.reorderPerm.genBody('A_', 'sigIn', 'sigCount', 'sigOut')
 
-print genVHDL(fft4096)
+#print fft256_4.inputBitOrder()
+print genVHDL(fft4096_2)
 
